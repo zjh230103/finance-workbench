@@ -1,0 +1,19 @@
+{
+  "name": "财务人工作台",
+  "short_name": "财务工作台",
+  "description": "应付会计的日常工作台：风控与智库、待办、资讯、AI外挂、英语学习",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#eef2ee",
+  "theme_color": "#3d5a4e",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
