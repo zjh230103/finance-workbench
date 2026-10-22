@@ -1,0 +1,38 @@
+name: 每日 09:00 抓取财经与财税资讯
+
+on:
+  schedule:
+    # GitHub Actions 使用 UTC；UTC 01:00 = 北京时间 09:00
+    # 注：整点任务在高峰期可能延后几分钟到半小时执行，属正常现象
+    - cron: '0 1 * * *'
+  workflow_dispatch:      # 允许在 Actions 页面手动触发测试
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 抓取资讯并生成 news.json
+        run: python scripts/fetch_news.py news.json
+
+      - name: 有变化则提交
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add news.json
+          if git diff --cached --quiet; then
+            echo "本次无变化，跳过提交"
+          else
+            git commit -m "chore: 每日资讯 $(date -u -d '+8 hours' '+%Y-%m-%d %H:%M') CST"
+            git push
+          fi

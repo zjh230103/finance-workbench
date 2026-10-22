@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
 <title>财务人工作台</title>
 <meta name="theme-color" content="#3d5a4e">
 <meta name="mobile-web-app-capable" content="yes">
@@ -400,6 +401,14 @@
             <button class="btn" style="flex:0 0 auto" onclick="savePractice()">💾 记一次练习</button>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-top:6px">📌 录音仅在本地浏览器留存，不上传；手机端需 HTTPS 页面才可使用麦克风。</div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+            <button class="btn ghost" style="flex:0 0 auto;padding:6px 10px;font-size:12px" onclick="diagMedia()">🔧 录音环境自检</button>
+            <span style="font-size:12px;color:var(--muted);align-self:center">录不了时可用：</span>
+            <label class="btn ghost" style="flex:0 0 auto;padding:6px 10px;font-size:12px;margin:0" for="recFile">📁 导入录音文件</label>
+            <input type="file" id="recFile" accept="audio/*" style="display:none" onchange="importRec(this)">
+          </div>
+          <div id="recTip" style="font-size:12px;color:var(--green);margin-top:6px"></div>
+          <div id="diagOut" style="display:none;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:12px;line-height:1.9"></div>
         </div>
       </div>
     </div>
@@ -472,7 +481,7 @@
   <div class="panel" id="p-news">
     <div class="card">
       <h2>📡 实时资讯推送 · 每日 9:00 自动刷新</h2>
-      <div class="desc">✅ 最后更新：<span id="newsTime">—</span>　<button class="btn ghost" style="padding:5px 10px;font-size:12px" onclick="renderNews(true)">↻ 立即刷新</button></div>
+      <div class="desc">✅ 最后更新：<span id="newsTime">—</span><span id="newsSrcTip" style="font-size:11px;color:var(--muted)"></span>　<button class="btn ghost" style="padding:5px 10px;font-size:12px" onclick="renderNews(true)">↻ 立即刷新</button></div>
       <div class="news-cats">
         <div class="news-cat active" onclick="setNewsCat(this,'aShare')">📊 A股财报分析</div>
         <div class="news-cat" onclick="setNewsCat(this,'finance')">💰 全球财经</div>
@@ -494,7 +503,7 @@
             <input type="text" id="peerKw" placeholder="关键词过滤，如：返点 / 扩产 / 招标" oninput="renderPeer()">
             <button class="btn ghost" style="flex:0 0 auto" onclick="$('peerKw').value='';renderPeer()">清空</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:8px">📌 下列动态为内置示例（静态页面无法实时抓取），要看当天实时信息请点下方外链直达。</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">📌 「💰 全球财经」与「📋 会计准则与税法」已由云端每日 9:00 自动抓取更新；本「同行对比」仍为内置示例，看当天实时信息请点下方外链直达。</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
             <a class="link-btn" id="pkEast" target="_blank">📈 东方财富 · 板块行情</a>
             <a class="link-btn" id="pkThs" target="_blank" style="background:var(--amber)">🏭 同花顺 · 行业板块</a>
@@ -1144,17 +1153,80 @@ function renderBankChips(){
     return `<span onclick="pickCat('${k}')" style="cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid ${on?'var(--green)':'var(--line)'};background:${on?'var(--green)':'transparent'};color:${on?'#fff':'var(--muted)'}">${SENT_BANKS[k].label}</span>`;
   }).join('');
 }
-function pickCat(k){sentCat=k;sentOff=0;store.set('sentCat',k);store.set('sentOff',0);curSentence='';if($('curSent'))$('curSent').textContent='（请在上方选一句）';renderSents()}
+let curGi=-1;
+function sentSrc(cat,gi){return 'audio/s_'+cat+'_'+gi+'.mp3'}
+function pickCat(k){sentCat=k;sentOff=0;store.set('sentCat',k);store.set('sentOff',0);curSentence='';curGi=-1;if($('curSent'))$('curSent').textContent='（请在上方选一句）';renderSents()}
 function renderSents(rotate){
   const bank=SENT_BANKS[sentCat]||SENT_BANKS.daily,all=bank.s;
   if(rotate){sentOff=(sentOff+SENT_BATCH)%all.length;store.set('sentOff',sentOff)}
   const arr=[...all.slice(sentOff),...all.slice(0,sentOff)].slice(0,SENT_BATCH);
-  $('sentList').innerHTML=arr.map(x=>`<div class="sent ${x===curSentence?'sel':''}" data-s="${x.replace(/"/g,'&quot;')}" onclick="pickSent(this.dataset.s)">${x}</div>`).join('');
+  $('sentList').innerHTML=arr.map(x=>{const gi=all.indexOf(x);return `<div class="sent ${x===curSentence?'sel':''}" data-s="${x.replace(/"/g,'&quot;')}" data-gi="${gi}" onclick="pickSent(this.dataset.s,this.dataset.gi)">${x}</div>`}).join('');
   renderBankChips();
 }
-function pickSent(s){curSentence=s;$('curSent').textContent=s;renderSents()}
-function useCustom(){const v=$('customSent').value.trim();if(!v)return;curSentence=v;$('curSent').textContent=v;renderSents()}
-function speakCur(){if(!curSentence){alert('请先选一句话');return}hearWord(curSentence)}
+function pickSent(s,gi){curSentence=s;curGi=(gi===undefined||gi==='')?-1:parseInt(gi,10);$('curSent').textContent=s;renderSents()}
+function useCustom(){const v=$('customSent').value.trim();if(!v)return;curSentence=v;curGi=-1;$('curSent').textContent=v;renderSents()}
+function speakCur(){
+  if(!curSentence){alert('请先选一句话');return}
+  if(curGi>=0){
+    playAudioUrl(sentSrc(sentCat,curGi)).then(ok=>{if(!ok)speakText(curSentence)});
+  }else{
+    speakText(curSentence);
+  }
+}
+function isStandalone(){try{return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true}catch(e){return false}}
+function appHint(){return '你正以「App 模式」运行。部分安卓机型在此模式下不弹麦克风权限框、也不放行部分声音接口。建议改用手机浏览器标签页打开本站（长按桌面图标 →「在浏览器中打开」）。'}
+function importRec(inp){
+  const f=inp&&inp.files&&inp.files[0];if(!f)return;
+  lastBlob=f;
+  const b=$('playBtn');if(b)b.disabled=false;
+  const t=$('recTip');if(t)t.textContent='✅ 已导入 '+f.name+'（'+(f.size/1024).toFixed(0)+' KB），可点「▶ 回放」试听，再自评打卡。';
+  inp.value='';
+}
+async function diagMedia(){
+  const out=$('diagOut');if(!out)return;
+  out.style.display='block';out.innerHTML='正在检测…请稍候';
+  const L=[];let ok=true;
+  L.push('① 页面协议：'+(location.protocol==='https:'?'✅ HTTPS':'❌ '+location.protocol+'（录音需 HTTPS）'));
+  const sa=isStandalone();
+  L.push('② 运行模式：'+(sa?'⚠️ App 模式（standalone）':'✅ 浏览器标签页'));
+  if(sa)L.push('　　↳ '+appHint());
+  L.push('③ MediaRecorder：'+(typeof MediaRecorder!=='undefined'?'✅ 支持':'❌ 不支持'));
+  L.push('④ getUserMedia：'+(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia?'✅ 支持':'❌ 不支持'));
+  let perm='无法查询（浏览器不支持 Permissions API）';
+  try{if(navigator.permissions&&navigator.permissions.query){
+    const p=await navigator.permissions.query({name:'microphone'});
+    perm=p.state==='granted'?'✅ 已授权':(p.state==='denied'?'❌ 已被拒绝（需到 设置→网站设置→麦克风 手动允许）':'⚠️ 尚未询问');
+  }}catch(e){}
+  L.push('⑤ 麦克风权限：'+perm);
+  try{
+    const r=await fetch('audio/s_daily_0.mp3',{method:'HEAD'});
+    L.push('⑥ 本地音频文件：'+(r.ok?'✅ 可访问（发音应已可用）':'❌ 缺失 HTTP '+r.status));
+    if(!r.ok)ok=false;
+  }catch(e){L.push('⑥ 本地音频文件：❌ 请求失败');ok=false}
+  try{
+    await new Promise((res,rej)=>{
+      const a=new Audio('audio/s_daily_0.mp3');
+      a.oncanplay=res;a.onerror=()=>rej(new Error('decode'));
+      setTimeout(()=>rej(new Error('timeout')),5000);a.load();
+    });
+    L.push('⑦ 音频解码：✅ 可播放');
+  }catch(e){L.push('⑦ 音频解码：❌ 无法播放');}
+  L.push('⑧ 系统语音朗读：'+(typeof speechSynthesis!=='undefined'?'✅ 可用（兜底发音）':'❌ 不可用'));
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:true});
+    st.getTracks().forEach(t=>t.stop());
+    L.push('⑨ 麦克风实测：✅ 可以录音');
+  }catch(e){
+    const n=(e&&e.name)||'Unknown';
+    const why={'NotAllowedError':'权限被拒绝','NotFoundError':'无麦克风设备','NotReadableError':'被其它应用占用','SecurityError':'非 HTTPS 安全限制','OverconstrainedError':'参数不支持'}[n]||'未知原因';
+    L.push('⑨ 麦克风实测：❌ '+why+'（'+n+'）');
+    if(sa)L.push('　　↳ '+appHint());
+    else if(n==='NotAllowedError')L.push('　　↳ 请点地址栏左侧「🔒」→ 权限 → 麦克风 → 允许，然后重试。');
+    L.push('　　↳ 兜底方案：用手机自带录音机录好，再点「📁 导入录音文件」。');
+  }
+  L.push('<div style="margin-top:8px;color:var(--muted)">把以上结果截图发我，我就能精确定位是哪一环断了。</div>');
+  out.innerHTML=L.join('<br>');
+}
 function pickMime(){try{if(typeof MediaRecorder==='undefined')return '';
   const cand=['audio/webm;codecs=opus','audio/webm','audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/ogg;codecs=opus'];
   for(const m of cand){if(MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))return m}
@@ -1184,6 +1256,7 @@ async function toggleRec(){
     else if(e&&e.name==='NotFoundError')msg='未检测到麦克风设备。';
     else if(e&&e.name==='NotReadableError')msg='麦克风被其它应用占用，请关闭后重试。';
     else if(e&&e.name==='SecurityError')msg='浏览器安全限制：请确认页面是 HTTPS（当前 '+(location.protocol==='https:'?'是':'否')+'）。';
+    if(isStandalone())msg+='\n\n你正以「App 模式」运行，部分安卓机型在此模式下不弹麦克风权限框。建议：① 用浏览器标签页打开本站再录音；② 或点「📁 导入录音文件」，用手机自带录音机录好后导入。';
     alert(msg);
   }
 }
@@ -1233,21 +1306,26 @@ function renderTed(rotate){
   $('tedList').innerHTML=arr.map(x=>{
     const watched=eng.tedWatched.includes(x.t);
     const bili='https://search.bilibili.com/all?keyword='+encodeURIComponent('TED '+x.t);
+    const bdvd='https://www.baidu.com/s?wd='+encodeURIComponent('TED '+x.t+' 演讲 中英字幕');
     return `<div class="ted"><h3>${watched?'✅ ':''}${x.t}</h3><div class="who">🎤 ${x.w}</div><div class="why">${x.why}</div>
     <div style="margin-top:8px;padding:8px 10px;border-left:3px solid var(--amber);background:rgba(255,189,105,.08);border-radius:0 6px 6px 0">
       <div style="font-size:13px;line-height:1.7;color:var(--green)">&ldquo;${x.q}&rdquo;</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">${x.qz}</div>
     </div>
     <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
-      <button class="btn ghost" style="flex:0 0 auto;padding:6px 10px;font-size:12px" data-q="${attrStr(x.q)}" onclick="speakTed(this.dataset.q)">🔊 听金句</button>
+      <button class="btn ghost" style="flex:0 0 auto;padding:6px 10px;font-size:12px" data-gi="${TEDS.indexOf(x)}" onclick="speakTed(this.dataset.gi)">🔊 听金句</button>
       <a class="link-btn" style="background:var(--amber);flex:0 0 auto" href="${bili}" target="_blank" data-t="${attrStr(x.t)}" onclick="markTed(this.dataset.t)">▶ B站观看</a>
+      <a class="link-btn" style="flex:0 0 auto" href="${bdvd}" target="_blank" data-t="${attrStr(x.t)}" onclick="markTed(this.dataset.t)">🔎 百度找视频</a>
       <a class="link-btn" style="flex:0 0 auto" href="${x.u}" target="_blank" data-t="${attrStr(x.t)}" onclick="markTed(this.dataset.t)">🌐 官网(需外网)</a>
       <span style="font-size:12px;color:var(--muted);align-self:center">${watched?'已看':'未看'}</span>
     </div>
     <div style="font-size:11px;color:var(--muted);margin-top:6px">关键词：${(x.kw||[]).join(' · ')}</div>
     </div>`}).join('');
 }
-function speakTed(q){if(!q)return;speakText(q)}
+function speakTed(i){
+  i=parseInt(i,10);const x=TEDS[i];if(!x)return;
+  playAudioUrl('audio/t_'+i+'.mp3').then(ok=>{if(!ok)speakText(x.q)});
+}
 function markTed(t){if(!t||eng.tedWatched.includes(t))return;eng.tedWatched.push(t);const k=today();eng.log[k]=eng.log[k]||{new:0};eng.log[k].ted=(eng.log[k].ted||0)+1;saveEng();renderTed()}
 const EN_NEWS={  fin:[
     {t:"Gold remains in demand as investors seek portfolio protection",p:"Precious metals are being supported by investor concerns, geopolitical uncertainty and movements in major currencies. Central banks continued their purchases, keeping gold prices near record highs."},
@@ -1368,24 +1446,49 @@ const NEWS={
 };
 let newsCat='aShare';
 function setNewsCat(el,c){document.querySelectorAll('.news-cat').forEach(x=>x.classList.remove('active'));el.classList.add('active');newsCat=c;renderNews()}
+let newsData=null,newsUpdated='';
+async function ensureNews(force){
+  if(newsData&&!force)return;
+  try{
+    const r=await fetch('news.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    if(j&&Array.isArray(j.finance)){newsData=j;newsUpdated=j.updated||'';return}
+    throw new Error('数据格式不符');
+  }catch(e){newsData=newsData||null}
+}
+function newsSrc(cat){
+  if(newsData&&newsData[cat]&&newsData[cat].length)return newsData[cat];
+  return NEWS[cat]||[];
+}
+function paintNewsTime(){
+  const el=$('newsTime');if(!el)return;
+  const tip=$('newsSrcTip');
+  if(newsUpdated){
+    el.textContent='云端 '+newsUpdated;
+    if(tip)tip.textContent='（云端每日 9:00 自动抓取）';
+  }else{
+    el.textContent='内置示例 '+new Date().toLocaleString('zh-CN');
+    if(tip)tip.textContent='（未连上云端，显示内置示例）';
+  }
+}
 function renderNews(force){
-  if(newsCat==='aShare'){
-    $('newsList').style.display='none';$('aShareBox').style.display='block';$('peerBox').style.display='none';
-    $('newsTime').textContent=new Date().toLocaleString('zh-CN');
-    return;
-  }
-  if(newsCat==='peer'){
-    $('newsList').style.display='none';$('aShareBox').style.display='none';$('peerBox').style.display='block';
-    $('newsTime').textContent=new Date().toLocaleString('zh-CN');
-    if(!$('peerInd').options.length)initPeer();
-    renderPeer();
-    return;
-  }
-  $('newsList').style.display='block';$('aShareBox').style.display='none';$('peerBox').style.display='none';
-  const key='news_'+newsCat;let items=store.get(key,null);
-  if(force||!items){items=NEWS[newsCat];store.set(key,items)}
-  $('newsTime').textContent=new Date().toLocaleString('zh-CN');
-  $('newsList').innerHTML=items.map(n=>`<div class="news-item"><a href="${n.u}" target="_blank">${n.t}</a><div class="src">${n.s}</div></div>`).join('');
+  ensureNews(force).then(()=>{
+    if(newsCat==='aShare'){
+      $('newsList').style.display='none';$('aShareBox').style.display='block';$('peerBox').style.display='none';
+      paintNewsTime();return;
+    }
+    if(newsCat==='peer'){
+      $('newsList').style.display='none';$('aShareBox').style.display='none';$('peerBox').style.display='block';
+      paintNewsTime();
+      if(!$('peerInd').options.length)initPeer();
+      renderPeer();return;
+    }
+    $('newsList').style.display='block';$('aShareBox').style.display='none';$('peerBox').style.display='none';
+    const items=newsSrc(newsCat);
+    paintNewsTime();
+    $('newsList').innerHTML=items.map(n=>`<div class="news-item"><a href="${n.u}" target="_blank">${n.t}</a><div class="src">${n.d?n.d+' · ' : ''}${n.s||''}</div></div>`).join('');
+  });
 }
 
 /* ============ A股财报分析 ============ */

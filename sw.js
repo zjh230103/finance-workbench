@@ -1,5 +1,5 @@
 /* 财务人工作台 Service Worker：离线可用 + 自动更新缓存 */
-const CACHE = 'fw-cache-v2';
+const CACHE = 'fw-cache-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -8,7 +8,8 @@ const ASSETS = [
   './icon-512.png',
   './icon-maskable-512.png',
   './apple-touch-icon.png',
-  './favicon-32.png'
+  './favicon-32.png',
+  './news.json'
 ];
 
 self.addEventListener('install', e => {
