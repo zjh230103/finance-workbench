@@ -375,8 +375,9 @@
 
     <div id="eng-speak" style="display:none">
       <div class="card">
-        <h2>🗣 口语练习 · 跟读录音</h2>
+        <h2>🗣 口语练习 · 跟读录音 <button class="btn ghost" style="padding:5px 10px;font-size:12px;margin-left:auto" onclick="renderSents(true)">🔄 换一批</button></h2>
         <div class="desc">选一句点开 → 听原声 → 录音跟读 → 回放自评。练的是敢开口，不是语法。</div>
+        <div id="sentBanks" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <div id="sentList"></div>
         <div style="margin-top:10px">
           <input type="text" id="customSent" placeholder="或自定义一句话，回车确认" onkeydown="if(event.key==='Enter')useCustom()">
@@ -405,7 +406,7 @@
     <div id="eng-ted" style="display:none">
       <div class="card">
         <h2>🎤 TED 演讲 · 精听与跟读 <button class="btn ghost" style="padding:5px 10px;font-size:12px;margin-left:auto" onclick="renderTed(true)">🔄 换一批</button></h2>
-        <div class="desc">每周 1—2 场，先盲听一遍，再看字幕，最后跟读。看过的会自动打勾。</div>
+        <div class="desc">先点「🔊 听金句」盲听，再看中文对照，最后跟读并录音。视频走 B站（国内可看）；官网链接需外网。<br><span style="color:var(--muted);font-size:11px">不再依赖 ted.com 加载，手机上随点随听。</span></div>
         <div id="tedList"></div>
       </div>
     </div>
@@ -841,24 +842,19 @@
     </div>
     <div id="ai-tools">
       <div class="card">
-        <h2>🤖 免费AI工具推荐 · 财务人专属</h2>
-        <div class="desc">精选可免费使用的AI工具，适合财务尽调/财务核算从业者，助力提升效率、拓展副业。全部免费</div>
-        <div class="tool-card"><span class="tag">长文档分析</span><h3>Kimi（月之暗面）</h3>
-          <p>支持200万字超长上下文，可一次性上传多份合同、财报、招股书进行对比分析。尽调时上传几十页PDF合同，AI自动提取关键条款和风险点，完全免费。<br>免费 · 适合：合同审查 · 财报分析 · 尽调</p>
-          <a href="https://www.kimi.com" target="_blank">了解更多 →</a></div>
-        <div class="tool-card"><span class="tag">深度求索</span><h3>DeepSeek（深度求索）</h3>
-          <p>推理能力强的国产大模型，适合财务逻辑校验、分录推敲、准则条文解读与测算验证。<br>免费 · 适合：准则解读 · 逻辑复核 · 测算</p>
-          <a href="https://chat.deepseek.com" target="_blank">了解更多 →</a></div>
-        <div class="tool-card"><span class="tag">办公提效</span><h3>腾讯元宝 / 通义千问</h3>
-          <p>适合日常问答、制度起草、邮件润色、Excel公式讲解等轻量场景。<br>免费 · 适合：文案 · 表格 · 问答</p></div>
+        <h2>🤖 AI 工具库 · 财务人精选 <button class="btn ghost" style="padding:5px 10px;font-size:12px;margin-left:auto" onclick="renderAiTools(true)">🔄 换一批</button></h2>
+        <div class="desc">覆盖对话推理、搜索研究、文档阅读、办公写作、图像设计、视频音频、编程数据七大类。<span id="aiCount"></span><br><span style="color:var(--muted);font-size:11px">每个工具都标注了财务场景用法；若官网链接变动，点「🔍 搜索」即可找到。</span></div>
+        <div id="aiCats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
+        <div id="aiToolList"></div>
       </div>
     </div>
     <div id="ai-dict" style="display:none">
       <div class="card">
-        <h2>📚 AI词典 · 财务与AI名词科普</h2>
+        <h2>📚 AI词典 · 财务与AI名词科普 <button class="btn ghost" style="padding:5px 10px;font-size:12px;margin-left:auto" onclick="renderDict(true)">🔄 换一批</button></h2>
         <div class="desc">核心概念解读，点击「已学」隐藏并解锁新词条</div>
         <div class="progress"><i id="dictBar" style="width:0%"></i></div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">学习进度　<span id="dictProg">0/8</span>　<a href="javascript:resetDict()" style="color:var(--red)">重置</a></div>
+        <div id="dictCats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px"></div>
         <div id="dictList"></div>
       </div>
     </div>
@@ -1039,7 +1035,31 @@ function renderWord(){
   </div>`;
 }
 function switchBank(k){eng.bank=k;eng.idx=0;saveEng();renderWord()}
-function hearWord(w){const u=new SpeechSynthesisUtterance(w);u.lang='en-US';speechSynthesis.speak(u)}
+/* === 发音 ===
+   实测：有道 dictvoice 只支持单词（整句返回空音频），百度 gettts 支持整句。
+   故单词优先有道、整句走百度；两者都失败再回退浏览器 TTS（手机可能没装英文语音包）。*/
+let _ttsVoices=null,_audioEl=null;
+function warmVoices(){try{if(typeof speechSynthesis==='undefined')return;const load=()=>{const v=speechSynthesis.getVoices()||[];if(v.length)_ttsVoices=v};load();if(!_ttsVoices)speechSynthesis.onvoiceschanged=load}catch(e){}}
+function sysSpeak(text){try{if(typeof speechSynthesis==='undefined')return false;if(!_ttsVoices)warmVoices();speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);u.lang='en-US';u.rate=.95;
+  const vs=_ttsVoices||[];const v=vs.find(x=>/en[-_]US/i.test(x.lang))||vs.find(x=>/^en/i.test(x.lang));if(v)u.voice=v;
+  speechSynthesis.speak(u);return true}catch(e){return false}}
+function playAudioUrl(url){return new Promise(res=>{try{
+  if(!_audioEl)_audioEl=new Audio();
+  let done=false;const fin=ok=>{if(!done){done=true;res(ok)}};
+  _audioEl.onended=()=>fin(true);_audioEl.onerror=()=>fin(false);
+  _audioEl.src=url;const p=_audioEl.play();if(p&&p.catch)p.catch(()=>fin(false));
+  setTimeout(()=>fin(false),12000);
+}catch(e){res(false)}})}
+function speakText(text,fallback){
+  if(!text)return;const t=String(text).trim(),enc=encodeURIComponent(t);
+  const isSent=/\s/.test(t);
+  const bd='https://fanyi.baidu.com/gettts?lan=en&text='+enc+'&spd=3&source=web';
+  if(isSent){playAudioUrl(bd).then(ok=>{if(!ok)sysSpeak(t)});return}
+  const yd='https://dict.youdao.com/dictvoice?audio='+enc+'&type=2';
+  playAudioUrl(yd).then(ok=>{if(!ok)playAudioUrl(bd).then(ok2=>{if(!ok2)sysSpeak(t)})});
+}
+function hearWord(w){speakText(w)}
 function skipWord(){eng.idx++;saveEng();renderWord()}
 function learnWord(w,m){
   const t=today();eng.log[t]=eng.log[t]||{new:0};
@@ -1057,37 +1077,117 @@ function reviewWord(ok){
 function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
 
 /* 口语练习 */
-const SENTS=[
+const SENT_BANKS={
+  daily:{label:'💬 日常沟通',s:[
   "I really appreciate your help with the reconciliation.",
-  "We need to find a compromise that works for both sides.",
-  "Let me share my perspective on this payment term.",
+  "Let me get back to you on that this afternoon.",
+  "Sorry to keep you waiting, the system was down.",
+  "Could we move the meeting to tomorrow morning?",
+  "That works for me, thanks for adjusting.",
+  "I am afraid I have a conflicting appointment.",
+  "Let me make sure I understood you correctly.",
+  "Would you mind sending that over by email?",
+  "Thanks for bearing with me on this.",
+  "I will look into it and keep you posted."]},
+  meeting:{label:'🗂 会议表达',s:[
+  "Let me walk you through the numbers first.",
   "Could you elaborate on that point about the rebate policy?",
   "The quarterly results exceeded our expectations.",
-  "I'd like to propose a new approach to supplier management.",
+  "I would like to propose a new approach to supplier management.",
   "What are the key takeaways from this audit finding?",
-  "Perfection. It's what we all strive for."
-];
+  "To sum up, we have three action items.",
+  "Let us park that topic and come back to it later.",
+  "I see your point, but let me add one thing.",
+  "Just to clarify, are we talking about gross or net?",
+  "We are running short on time, so let me be brief."]},
+  finance:{label:'📊 财务专业',s:[
+  "The accounts payable balance decreased twelve percent quarter on quarter.",
+  "We need to reconcile the intercompany balances before closing.",
+  "This invoice has already been accrued in the previous period.",
+  "Please provide the supporting documents for this reimbursement.",
+  "The input VAT credit has not been verified yet.",
+  "We booked a provision for doubtful debts this month.",
+  "Depreciation starts from the month following the asset commissioning.",
+  "The cash conversion cycle shortened by eight days.",
+  "This rebate should be recognized as a reduction of cost.",
+  "Let me double-check the amortization schedule."]},
+  email:{label:'✉️ 邮件电话',s:[
+  "I am writing to follow up on the outstanding invoice.",
+  "Please find the attached reconciliation statement.",
+  "We would appreciate it if you could confirm by Friday.",
+  "Attached is the revised schedule for your reference.",
+  "I look forward to hearing from you soon.",
+  "Apologies for the late reply.",
+  "Kindly note that the deadline has been extended.",
+  "This is to confirm our discussion earlier today.",
+  "Should you have any questions, feel free to reach out.",
+  "We acknowledge receipt of your remittance."]},
+  negotiate:{label:'🤝 谈判协商',s:[
+  "We need to find a compromise that works for both sides.",
+  "Let me share my perspective on this payment term.",
+  "Would you consider extending the credit period to sixty days?",
+  "That is beyond our approval limit, but I can escalate it.",
+  "In return, we could commit to a higher annual volume.",
+  "We value the partnership and want a win-win outcome.",
+  "Let us put that in writing so we are both protected.",
+  "I am not in a position to agree to that right now.",
+  "Can we revisit the pricing once volumes pick up?",
+  "Let us agree on the principles first, then iron out details."]}};
+const SENT_BATCH=6;
+let sentCat=store.get('sentCat','daily'),sentOff=store.get('sentOff',0);
 let curSentence='',mediaRec=null,recChunks=[],recStart=0,recTimer=null,lastBlob=null;
 function esc(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
-function renderSents(){
-  $('sentList').innerHTML=SENTS.map(s=>`<div class="sent ${s===curSentence?'sel':''}" data-s="${s}" onclick="pickSent(this.dataset.s)">${s}</div>`).join('');
+function renderBankChips(){
+  const el=$('sentBanks');if(!el)return;
+  el.innerHTML=Object.keys(SENT_BANKS).map(k=>{
+    const on=k===sentCat;
+    return `<span onclick="pickCat('${k}')" style="cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid ${on?'var(--green)':'var(--line)'};background:${on?'var(--green)':'transparent'};color:${on?'#fff':'var(--muted)'}">${SENT_BANKS[k].label}</span>`;
+  }).join('');
+}
+function pickCat(k){sentCat=k;sentOff=0;store.set('sentCat',k);store.set('sentOff',0);curSentence='';if($('curSent'))$('curSent').textContent='（请在上方选一句）';renderSents()}
+function renderSents(rotate){
+  const bank=SENT_BANKS[sentCat]||SENT_BANKS.daily,all=bank.s;
+  if(rotate){sentOff=(sentOff+SENT_BATCH)%all.length;store.set('sentOff',sentOff)}
+  const arr=[...all.slice(sentOff),...all.slice(0,sentOff)].slice(0,SENT_BATCH);
+  $('sentList').innerHTML=arr.map(x=>`<div class="sent ${x===curSentence?'sel':''}" data-s="${x.replace(/"/g,'&quot;')}" onclick="pickSent(this.dataset.s)">${x}</div>`).join('');
+  renderBankChips();
 }
 function pickSent(s){curSentence=s;$('curSent').textContent=s;renderSents()}
 function useCustom(){const v=$('customSent').value.trim();if(!v)return;curSentence=v;$('curSent').textContent=v;renderSents()}
-function speakCur(){if(!curSentence)return;hearWord(curSentence)}
+function speakCur(){if(!curSentence){alert('请先选一句话');return}hearWord(curSentence)}
+function pickMime(){try{if(typeof MediaRecorder==='undefined')return '';
+  const cand=['audio/webm;codecs=opus','audio/webm','audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/ogg;codecs=opus'];
+  for(const m of cand){if(MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))return m}
+}catch(e){}return ''}
 async function toggleRec(){
   if(mediaRec&&mediaRec.state==='recording'){mediaRec.stop();return}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||typeof MediaRecorder==='undefined'){
+    alert('当前环境不支持录音。请用手机 Chrome 打开，且页面必须是 HTTPS（当前：'+(location.protocol==='https:'?'HTTPS':'非 HTTPS')+'）');return}
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    recChunks=[];mediaRec=new MediaRecorder(stream);
-    mediaRec.ondataavailable=e=>recChunks.push(e.data);
-    mediaRec.onstop=()=>{lastBlob=new Blob(recChunks,{type:'audio/webm'});$('playBtn').disabled=false;stream.getTracks().forEach(t=>t.stop());clearInterval(recTimer);$('recBtn').textContent='🎤 开始录音'};
+    recChunks=[];const mime=pickMime();
+    mediaRec=mime?new MediaRecorder(stream,{mimeType:mime}):new MediaRecorder(stream);
+    mediaRec.ondataavailable=e=>{if(e.data&&e.data.size)recChunks.push(e.data)};
+    mediaRec.onstop=()=>{
+      lastBlob=recChunks.length?new Blob(recChunks,{type:mediaRec.mimeType||'audio/webm'}):null;
+      $('playBtn').disabled=!lastBlob;
+      stream.getTracks().forEach(t=>t.stop());clearInterval(recTimer);
+      $('recBtn').textContent='🎤 开始录音';
+      if(!lastBlob)alert('没有录到声音，请确认麦克风未被其它应用占用');
+    };
     mediaRec.start();recStart=Date.now();
     $('recBtn').textContent='⏹ 停止录音';
-    recTimer=setInterval(()=>{const s=Math.floor((Date.now()-recStart)/1000);$('recTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')},500);
-  }catch(e){alert('无法使用麦克风：请在浏览器中允许麦克风权限（手机端需 HTTPS 页面）')}
+    recTimer=setInterval(()=>{const sec=Math.floor((Date.now()-recStart)/1000);$('recTime').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')},500);
+  }catch(e){
+    let msg='无法使用麦克风：'+((e&&e.name)||'未知错误');
+    if(e&&e.name==='NotAllowedError')msg='麦克风权限被拒绝。请点地址栏左侧锁形图标 → 权限 → 允许麦克风，然后重试。';
+    else if(e&&e.name==='NotFoundError')msg='未检测到麦克风设备。';
+    else if(e&&e.name==='NotReadableError')msg='麦克风被其它应用占用，请关闭后重试。';
+    else if(e&&e.name==='SecurityError')msg='浏览器安全限制：请确认页面是 HTTPS（当前 '+(location.protocol==='https:'?'是':'否')+'）。';
+    alert(msg);
+  }
 }
-function playRec(){if(!lastBlob)return;new Audio(URL.createObjectURL(lastBlob)).play()}
+function playRec(){if(!lastBlob){alert('还没有录音，先点「开始录音」');return}try{new Audio(URL.createObjectURL(lastBlob)).play()}catch(e){alert('回放失败：'+e.message)}}
 function savePractice(){
   if(!$('selfScore').value){alert('请先自评星级');return}
   eng.minutes+=1;
@@ -1097,27 +1197,58 @@ function savePractice(){
 
 /* TED */
 const TEDS=[
-  {t:"How to speak so that people want to listen",w:"Julian Treasure",why:"演讲与沟通技巧，财务人必备",u:"https://www.ted.com/talks/julian_treasure_how_to_speak_so_that_people_want_to_listen"},
-  {t:"The power of vulnerability",w:"Brené Brown",why:"关于脆弱与勇气，个人成长经典",u:"https://www.ted.com/talks/brene_brown_the_power_of_vulnerability"},
-  {t:"Your body language may shape who you are",w:"Amy Cuddy",why:"肢体语言与自信表达",u:"https://www.ted.com/talks/amy_cuddy_your_body_language_may_shape_who_you_are"},
-  {t:"How great leaders inspire action",w:"Simon Sinek",why:"黄金圈法则，管理与汇报思路",u:"https://www.ted.com/talks/simon_sinek_how_great_leaders_inspire_action"},
-  {t:"The happy secret to better work",w:"Shawn Achor",why:"积极心理学与工作效率",u:"https://www.ted.com/talks/shawn_achor_the_happy_secret_to_better_work"}
+  {t:"How to speak so that people want to listen",w:"Julian Treasure",why:"演讲与沟通技巧，财务人汇报必备",
+   q:"The human voice: it's the instrument we all play.",qz:"人声是我们所有人都会演奏的乐器。",
+   kw:["register","timbre","prosody"],u:"https://www.ted.com/talks/julian_treasure_how_to_speak_so_that_people_want_to_listen"},
+  {t:"The power of vulnerability",w:"Brené Brown",why:"关于脆弱与勇气，个人成长经典",
+   q:"Vulnerability is not winning or losing. It's having the courage to show up.",qz:"脆弱不是输赢，而是敢于真实地站出来。",
+   kw:["vulnerability","courage","empathy"],u:"https://www.ted.com/talks/brene_brown_the_power_of_vulnerability"},
+  {t:"Your body language may shape who you are",w:"Amy Cuddy",why:"肢体语言与自信表达",
+   q:"Don't fake it till you make it. Fake it till you become it.",qz:"不是装到成功为止，而是装到成为那个人为止。",
+   kw:["posture","confidence","presence"],u:"https://www.ted.com/talks/amy_cuddy_your_body_language_may_shape_who_you_are"},
+  {t:"How great leaders inspire action",w:"Simon Sinek",why:"黄金圈法则，管理与汇报思路",
+   q:"People don't buy what you do; they buy why you do it.",qz:"人们买的不是你做了什么，而是你为什么而做。",
+   kw:["golden circle","purpose","inspire"],u:"https://www.ted.com/talks/simon_sinek_how_great_leaders_inspire_action"},
+  {t:"The happy secret to better work",w:"Shawn Achor",why:"积极心理学与工作效率",
+   q:"Happiness is not the belief that we don't need to change; it's the realization that we can.",qz:"幸福不是相信我们无需改变，而是意识到我们可以改变。",
+   kw:["positivity","habit","performance"],u:"https://www.ted.com/talks/shawn_achor_the_happy_secret_to_better_work"},
+  {t:"Inside the mind of a master procrastinator",w:"Tim Urban",why:"拖延机制，时间管理必看",
+   q:"Everyone procrastinates, but not everyone is a procrastinator.",qz:"人人都会拖延，但不是人人都是拖延者。",
+   kw:["procrastination","deadline","focus"],u:"https://www.ted.com/talks/tim_urban_inside_the_mind_of_a_master_procrastinator"},
+  {t:"The puzzle of motivation",w:"Dan Pink",why:"自驱力三要素：自主、精进、意义",
+   q:"There is a mismatch between what science knows and what business does.",qz:"科学所知的与商业所做的之间存在错位。",
+   kw:["autonomy","mastery","purpose"],u:"https://www.ted.com/talks/dan_pink_the_puzzle_of_motivation"},
+  {t:"Grit: The power of passion and perseverance",w:"Angela Lee Duckworth",why:"长期坚持比天赋更能预测成就",
+   q:"Grit is passion and perseverance for very long-term goals.",qz:"坚毅是对长远目标的热情与坚持。",
+   kw:["grit","perseverance","growth"],u:"https://www.ted.com/talks/angela_lee_duckworth_grit_the_power_of_passion_and_perseverance"},
+  {t:"The power of introverts",w:"Susan Cain",why:"内向者的力量，安静也是一种影响力",
+   q:"There's zero correlation between being the best talker and having the best ideas.",qz:"最会说话与最有想法之间并无关联。",
+   kw:["introvert","solitude","listening"],u:"https://www.ted.com/talks/susan_cain_the_power_of_introverts"}
 ];
 let tedOffset=store.get('tedOffset',0);
+function attrStr(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function renderTed(rotate){
-  if(rotate){tedOffset=(tedOffset+2)%TEDS.length;store.set('tedOffset',tedOffset)}
+  if(rotate){tedOffset=(tedOffset+3)%TEDS.length;store.set('tedOffset',tedOffset)}
   const arr=[...TEDS.slice(tedOffset),...TEDS.slice(0,tedOffset)].slice(0,3);
   $('tedList').innerHTML=arr.map(x=>{
     const watched=eng.tedWatched.includes(x.t);
+    const bili='https://search.bilibili.com/all?keyword='+encodeURIComponent('TED '+x.t);
     return `<div class="ted"><h3>${watched?'✅ ':''}${x.t}</h3><div class="who">🎤 ${x.w}</div><div class="why">${x.why}</div>
-    <div class="row" style="margin-top:8px">
-      <a class="link-btn" style="background:var(--amber);flex:0 0 auto" href="${x.u}" target="_blank" data-t="${x.t}" onclick="markTed(this.dataset.t)">▶ 观看</a>
-      <span style="font-size:12px;color:var(--muted)">${watched?'已看':'未看'}</span>
-    </div></div>`}).join('');
+    <div style="margin-top:8px;padding:8px 10px;border-left:3px solid var(--amber);background:rgba(255,189,105,.08);border-radius:0 6px 6px 0">
+      <div style="font-size:13px;line-height:1.7;color:var(--green)">&ldquo;${x.q}&rdquo;</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">${x.qz}</div>
+    </div>
+    <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+      <button class="btn ghost" style="flex:0 0 auto;padding:6px 10px;font-size:12px" data-q="${attrStr(x.q)}" onclick="speakTed(this.dataset.q)">🔊 听金句</button>
+      <a class="link-btn" style="background:var(--amber);flex:0 0 auto" href="${bili}" target="_blank" data-t="${attrStr(x.t)}" onclick="markTed(this.dataset.t)">▶ B站观看</a>
+      <a class="link-btn" style="flex:0 0 auto" href="${x.u}" target="_blank" data-t="${attrStr(x.t)}" onclick="markTed(this.dataset.t)">🌐 官网(需外网)</a>
+      <span style="font-size:12px;color:var(--muted);align-self:center">${watched?'已看':'未看'}</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">关键词：${(x.kw||[]).join(' · ')}</div>
+    </div>`}).join('');
 }
-function markTed(t){if(!eng.tedWatched.includes(t)){eng.tedWatched.push(t);const k=today();eng.log[k]=eng.log[k]||{new:0};eng.log[k].ted=(eng.log[k].ted||0)+1;saveEng();renderTed()}}
-
-/* 英文新闻 */
+function speakTed(q){if(!q)return;speakText(q)}
+function markTed(t){if(!t||eng.tedWatched.includes(t))return;eng.tedWatched.push(t);const k=today();eng.log[k]=eng.log[k]||{new:0};eng.log[k].ted=(eng.log[k].ted||0)+1;saveEng();renderTed()}
 const EN_NEWS={  fin:[
     {t:"Gold remains in demand as investors seek portfolio protection",p:"Precious metals are being supported by investor concerns, geopolitical uncertainty and movements in major currencies. Central banks continued their purchases, keeping gold prices near record highs."},
     {t:"Central banks hold rates steady amid mixed economic signals",p:"Major central banks kept interest rates unchanged this week, citing balanced risks between inflation and growth. Markets now expect a cautious approach to any future policy adjustments."}
@@ -1806,29 +1937,154 @@ function setAiTab(el,key){
   document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');
   ['tools','dict','code','biz'].forEach(k=>$('ai-'+k).style.display=k===key?'block':'none');
 }
+const AI_CATS=['chat','search','doc','office','image','media','code'];
+const AI_CAT_NAME={chat:'💬 对话推理',search:'🔍 搜索研究',doc:'📄 文档阅读',office:'📝 办公写作',image:'🎨 图像设计',media:'🎬 视频音频',code:'💻 编程数据'};
+const AI_TOOLS=[
+ {c:'chat',n:'ChatGPT',cn:0,u:'https://chatgpt.com',d:'通用能力最强的对话模型，适合复杂推理与英文材料处理。',use:'英文准则条文解读、跨境邮件润色、财务模型思路梳理'},
+ {c:'chat',n:'Claude',cn:0,u:'https://claude.ai',d:'长文本理解与写作质量突出，风格偏严谨克制。',use:'长篇报告改写、合同条款比对、审计底稿文字组织'},
+ {c:'chat',n:'Gemini',cn:0,u:'https://gemini.google.com',d:'Google 多模态模型，与搜索和表格生态打通。',use:'配合表格做数据核对、图片型凭证识别'},
+ {c:'chat',n:'DeepSeek 深度求索',cn:1,u:'https://chat.deepseek.com',d:'推理能力强的国产模型，免费额度充足。',use:'分录推敲、准则适用判断、测算逻辑复核'},
+ {c:'chat',n:'Kimi 月之暗面',cn:1,u:'https://kimi.com',d:'超长上下文，可一次吞下几十页 PDF。',use:'多份合同/招股书对比、年报要点提取'},
+ {c:'chat',n:'豆包',cn:1,u:'https://doubao.com',d:'字节出品的通用助手，中文表达自然。',use:'日常问答、制度初稿、会议纪要整理'},
+ {c:'chat',n:'通义千问',cn:1,u:'https://tongyi.aliyun.com',d:'阿里大模型，与办公和表格场景结合较好。',use:'Excel 公式讲解、数据口径说明、报表文字说明'},
+ {c:'chat',n:'文心一言',cn:1,u:'https://yiyan.baidu.com',d:'百度大模型，中文知识问答表现稳定。',use:'税务政策问答、术语解释'},
+ {c:'chat',n:'智谱清言',cn:1,u:'https://chatglm.cn',d:'清华系模型，适合结构化输出。',use:'生成表格化清单、科目对照表'},
+ {c:'chat',n:'讯飞星火',cn:1,u:'https://xinghuo.xfyun.cn',d:'语音能力见长，适合语音输入场景。',use:'会议录音转写后的要点归纳'},
+ {c:'chat',n:'腾讯元宝',cn:1,u:'https://yuanbao.tencent.com',d:'腾讯大模型入口，与微信生态贴近。',use:'日常轻量问答、朋友圈式短文案'},
+ {c:'search',n:'Perplexity',cn:0,u:'https://perplexity.ai',d:'带引用来源的 AI 搜索，答案可溯源。',use:'查政策出处、核对法规原文、做竞品资料'},
+ {c:'search',n:'秘塔AI搜索',cn:1,u:'https://metaso.cn',d:'中文 AI 搜索，结果附来源链接。',use:'查财税公告、查上市公司公开信息'},
+ {c:'search',n:'NotebookLM',cn:0,u:'https://notebooklm.google',d:'Google 出品的资料库问答，只依据你上传的材料作答。',use:'把制度/准则 PDF 建成私人问答库'},
+ {c:'search',n:'ChatPDF',cn:0,u:'https://chatpdf.com',d:'上传 PDF 直接对话提问。',use:'快速问年报、问审计报告'},
+ {c:'doc',n:'腾讯文档 AI',cn:1,u:'https://docs.qq.com',d:'在线文档内置 AI，适合多人协作场景。',use:'台账结构讨论、多人对账表协作'},
+ {c:'doc',n:'WPS AI',cn:1,u:'https://www.wps.cn',d:'国产办公套件内置 AI，本地化贴合。',use:'表格公式生成、Word 报告排版与润色'},
+ {c:'doc',n:'百度网盘 AI',cn:1,u:'https://pan.baidu.com',d:'云盘内文档可直接问答与摘要。',use:'归档合同批量摘要'},
+ {c:'office',n:'Notion AI',cn:0,u:'https://www.notion.so',d:'知识库与文档内的 AI 助手。',use:'搭建个人财务知识库、SOP 沉淀'},
+ {c:'office',n:'Gamma',cn:0,u:'https://gamma.app',d:'一句话生成整套 PPT 演示。',use:'经营分析会汇报稿、月度复盘演示'},
+ {c:'office',n:'飞书智能伙伴',cn:1,u:'https://www.feishu.cn',d:'飞书套件内的 AI，与审批流结合。',use:'把报销/付款审批说明自动化'},
+ {c:'office',n:'Xmind',cn:1,u:'https://www.xmind.cn',d:'思维导图工具，支持 AI 生成结构。',use:'梳理返点结算流程、画内控节点图'},
+ {c:'image',n:'Midjourney',cn:0,u:'https://www.midjourney.com',d:'图像生成质量第一梯队。',use:'做汇报配图、活动海报'},
+ {c:'image',n:'即梦AI',cn:1,u:'https://jimeng.jianying.com',d:'字节出品的中文图像生成工具。',use:'中文场景配图、简易设计'},
+ {c:'image',n:'通义万相',cn:1,u:'https://tongyi.aliyun.com/wanxiang',d:'阿里图像生成，中文理解好。',use:'PPT 插图、流程图美化'},
+ {c:'image',n:'Canva',cn:0,u:'https://www.canva.com',d:'在线设计平台，内置 AI 排版。',use:'快速做出可汇报的图表页'},
+ {c:'image',n:'Stable Diffusion',cn:0,u:'https://stability.ai',d:'开源图像模型生态，可本地部署。',use:'批量生成统一风格素材'},
+ {c:'media',n:'可灵AI',cn:1,u:'https://klingai.com',d:'快手出品的视频生成工具。',use:'做产线介绍短片、培训演示视频'},
+ {c:'media',n:'Sora',cn:0,u:'https://sora.com',d:'OpenAI 视频生成模型。',use:'演示视频、概念短片'},
+ {c:'media',n:'剪映',cn:1,u:'https://www.jianying.com',d:'视频剪辑工具，带 AI 字幕与成片。',use:'会议录像剪辑、加字幕'},
+ {c:'media',n:'Suno',cn:0,u:'https://suno.com',d:'AI 音乐生成。',use:'年会/活动背景音乐'},
+ {c:'media',n:'ElevenLabs',cn:0,u:'https://elevenlabs.io',d:'AI 语音合成，音色自然。',use:'给演示视频配旁白'},
+ {c:'code',n:'GitHub Copilot',cn:0,u:'https://github.com/features/copilot',d:'代码补全与解释，IDE 内使用。',use:'写 VBA 宏、解释脚本报错'},
+ {c:'code',n:'Cursor',cn:0,u:'https://cursor.com',d:'AI 编辑器，可对话式改代码。',use:'改造对账脚本、生成 Python 处理流程'},
+ {c:'code',n:'Trae',cn:1,u:'https://www.trae.ai',d:'字节出品的 AI 编程工具。',use:'中文注释生成、代码讲解'},
+ {c:'code',n:'bolt.new',cn:0,u:'https://bolt.new',d:'一句话生成可运行的小网页应用。',use:'快速搭一个内部小工具页面'}
+];
+let aiCat=store.get('aiCat','all'),aiOff=store.get('aiOff',0);
+function renderAiCats(){
+  const el=$('aiCats');if(!el)return;
+  const keys=['all','cn'].concat(AI_CATS);
+  const label={all:'🌟 全部',cn:'🇨🇳 国内可用'};
+  el.innerHTML=keys.map(k=>{
+    const on=k===aiCat;const txt=label[k]||AI_CAT_NAME[k];
+    return `<span onclick="pickAiCat('${k}')" style="cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid ${on?'var(--green)':'var(--line)'};background:${on?'var(--green)':'transparent'};color:${on?'#fff':'var(--muted)'}">${txt}</span>`;
+  }).join('');
+}
+function pickAiCat(k){aiCat=k;aiOff=0;store.set('aiCat',k);store.set('aiOff',0);renderAiTools()}
+function renderAiTools(rotate){
+  let pool;
+  if(aiCat==='all')pool=AI_TOOLS;
+  else if(aiCat==='cn')pool=AI_TOOLS.filter(x=>x.cn===1);
+  else pool=AI_TOOLS.filter(x=>x.c===aiCat);
+  if(rotate){aiOff=(aiOff+6)%(pool.length||1);store.set('aiOff',aiOff)}
+  const arr=[...pool.slice(aiOff),...pool.slice(0,aiOff)].slice(0,6);
+  $('aiToolList').innerHTML=arr.length?arr.map(x=>{
+    const search='https://www.bing.com/search?q='+encodeURIComponent(x.n+' AI 官网');
+    const flag=x.cn?'<span style="color:var(--green)">国内可用</span>':'<span style="color:var(--amber)">需外网</span>';
+    return `<div class="tool-card"><span class="tag">${AI_CAT_NAME[x.c]||''}</span><h3>${x.n} <span style="font-size:11px;font-weight:400;color:var(--muted)">· ${flag}</span></h3>
+      <p>${x.d}<br><b style="color:var(--green)">财务用法：</b>${x.use}</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-top:6px">
+        ${x.u?`<a href="${x.u}" target="_blank">打开官网 →</a>`:''}
+        <a href="${search}" target="_blank" style="font-size:12px;color:var(--muted)">🔍 搜索</a>
+      </div></div>`;
+  }).join(''):'<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">该分类暂无工具</div>';
+  $('aiCount').textContent='共 '+AI_TOOLS.length+' 个 · 当前筛选 '+pool.length+' 个（每批 6 个，可换一批）';
+  renderAiCats();
+}
+
+const DICT_CAT={base:'🧠 AI基础',fin:'💰 财务AI',prompt:'✍️ 提示词',risk:'⚠️ 风险合规'};
+const DICT_BATCH=8;
 const DICT=[
-  ['大语言模型','LLM (Large Language Model)：基于Transformer架构的海量参数语言模型，通过预训练+微调学会理解和生成文本。'],
-  ['提示词工程','Prompt Engineering：通过设计输入指令，引导AI输出更符合需求的内容，是财务人用AI的第一课。'],
-  ['RAG 检索增强','Retrieval-Augmented Generation：先检索知识库再生成答案，适合准则条文、内部制度的问答场景。'],
-  ['幻觉','Hallucination：AI编造不存在的内容。财务场景务必核对原文与数据来源，不能直接采信。'],
-  ['Token','模型处理文本的最小单位。中文约1字≈1~2 token，影响上下文长度与费用。'],
-  ['Agent 智能体','能自主规划并调用工具完成任务的AI，如自动对账、自动生成报表的工作流。'],
-  ['OCR','光学字符识别：把发票、银行回单图片转成可编辑文本，是应付/费用会计的好帮手。'],
-  ['XBRL','可扩展商业报告语言：财报数据的结构化标准格式，便于机器读取与同业对比。']
+ ['base','大语言模型','LLM：基于 Transformer 的海量参数语言模型，通过预训练+微调学会理解和生成文本。'],
+ ['base','Token','模型处理文本的最小单位。中文约 1 字≈1~2 token，直接影响上下文长度与调用费用。'],
+ ['base','上下文窗口','Context Window：模型一次能"记住"的字数上限。超长合同需分块或选长窗口模型。'],
+ ['base','幻觉','Hallucination：AI 编造不存在的内容。财务场景务必核对原文与数据来源，不可直接采信。'],
+ ['base','Temperature','温度参数：取值越低输出越确定，越高越发散。对账、算税等场景建议设低。'],
+ ['base','多模态','Multimodal：同时理解文字、图片、表格、语音。可用来识别发票、回单截图。'],
+ ['base','微调','Fine-tuning：用自有数据继续训练模型，使其更贴合企业口径与用语习惯。'],
+ ['base','智能体 Agent','能自主规划并调用工具完成任务的 AI，如自动对账、自动生成报表的工作流。'],
+ ['base','Transformer','当前主流大模型的底层架构，核心是"注意力机制"，决定了长文本理解能力。'],
+ ['base','知识蒸馏','把大模型能力压缩到小模型，便于本地部署、降低成本。'],
+ ['fin','OCR','光学字符识别：把发票、银行回单图片转成可编辑文本，应付与费用会计的好帮手。'],
+ ['fin','XBRL','可扩展商业报告语言：财报数据的结构化标准格式，便于机器读取与同业对比。'],
+ ['fin','RPA 财务机器人','按规则自动执行重复操作，如自动登录网银下载流水、自动填制凭证。'],
+ ['fin','智能对账','用规则+模型自动匹配银行流水与账面记录，只把差异交人工判断。'],
+ ['fin','数电票','全面数字化电子发票：不以 PDF/OFD 为载体，通过税务数字账户交付与归集。'],
+ ['fin','电子发票服务平台','全国统一的发票开具与交付平台，数电票的入口。'],
+ ['fin','自动分录','根据业务单据自动生成记账凭证，人工只做复核与异常处理。'],
+ ['fin','现金流预测','基于历史收付与合同账期预测未来资金缺口，服务资金计划与融资安排。'],
+ ['fin','反舞弊检测','用异常检测模型识别虚假报销、重复付款、关联方异常交易。'],
+ ['fin','信用评分模型','对客户/供应商进行履约与违约概率打分，支撑信用期与授信额度决策。'],
+ ['prompt','提示词工程','Prompt Engineering：设计输入指令引导 AI 输出符合要求的内容，是用 AI 的第一课。'],
+ ['prompt','角色设定','给 AI 指定身份，如"你是一位有十年经验的应付会计"，能显著提升专业度。'],
+ ['prompt','少样本示例','Few-shot：先给 2~3 个输入输出样例，模型会照着格式生成，适合批量格式化。'],
+ ['prompt','思维链','Chain of Thought：要求模型"先一步步推理再给结论"，可提升计算与判断准确率。'],
+ ['prompt','零样本','Zero-shot：不给示例直接下指令，适合简单问答与改写。'],
+ ['prompt','系统提示词','System Prompt：贯穿整个会话的底层指令，用来固定语气、口径与禁区。'],
+ ['prompt','输出格式约束','明确要求"用表格输出/只输出 JSON/不超过 200 字"，避免得到一大段废话。'],
+ ['prompt','分步指令','把复杂任务拆成 1、2、3 步分别提问，比一次性问完更可靠。'],
+ ['prompt','反提问校验','让 AI 复述它理解的你的需求，确认无误再执行，可避免方向性错误。'],
+ ['prompt','自我一致性','同一问题多次生成后取多数答案，用于降低偶发错误，适合关键测算。'],
+ ['risk','数据脱敏','上传前抹去供应商名称、银行账号、金额等敏感字段，是 AI 使用的底线。'],
+ ['risk','私有化部署','模型部署在企业内网或专有云，数据不出域，适合涉密财务数据。'],
+ ['risk','可解释性','Explainability：模型能否说明判断依据。信贷与审计场景必须可追溯。'],
+ ['risk','审计轨迹','Audit Trail：记录 AI 参与的每个环节与人工复核意见，满足内控与审计要求。'],
+ ['risk','数据跨境','向境外模型发送数据需评估合规风险，境内业务优先选境内服务商。'],
+ ['risk','生成内容版权','AI 生成物的著作权归属尚有争议，对外发布的材料应人工实质性修改。'],
+ ['risk','AI 生成内容标识','按规定对 AI 生成的文字、图片添加标识，避免误导与合规风险。'],
+ ['risk','责任归属','AI 输出仅为参考，会计判断与签字责任始终在会计人员本人，不可让渡。'],
+ ['risk','过度依赖风险','长期不假思索采信 AI 会弱化专业判断，建议先自己算一遍再对照。'],
+ ['risk','供应商数据隔离','不同供应商的返点、价格数据不应在同一会话中混用，防止交叉泄露。']
 ];
 let dictLearned=store.get('dictLearned',[]);
-function renderDict(){
-  const rest=DICT.map((d,i)=>({d,i})).filter(x=>!dictLearned.includes(x.i));
-  $('dictList').innerHTML=rest.length?rest.map(x=>`
-    <div class="dict-term"><div><b>${x.d[0]}</b><p>${x.d[1]}</p></div>
-    <button class="btn" style="flex:0 0 auto;align-self:center" onclick="learnDict(${x.i})">已学</button></div>`).join('')
-    :'<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">🎉 全部学完啦！可点「重置」再来一轮</div>';
+let dictCat=store.get('dictCat','all'),dictPool=store.get('dictPool',null);
+function shuffleArr(a){const b=a.slice();for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function renderDictCats(){
+  const el=$('dictCats');if(!el)return;
+  const keys=['all'].concat(Object.keys(DICT_CAT));
+  el.innerHTML=keys.map(k=>{
+    const on=k===dictCat,txt=k==='all'?'🌟 全部':DICT_CAT[k];
+    return `<span onclick="pickDictCat('${k}')" style="cursor:pointer;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid ${on?'var(--green)':'var(--line)'};background:${on?'var(--green)':'transparent'};color:${on?'#fff':'var(--muted)'}">${txt}</span>`;
+  }).join('');
+}
+function pickDictCat(k){dictCat=k;dictPool=null;store.set('dictCat',k);store.set('dictPool',null);renderDict()}
+function renderDict(rotate){
+  const all=DICT.map((d,i)=>({d,i})).filter(x=>dictCat==='all'||x.d[0]===dictCat);
+  const rest=all.filter(x=>!dictLearned.includes(x.i));
+  if(rotate||!dictPool||!dictPool.length){
+    dictPool=shuffleArr(rest.map(x=>x.i)).slice(0,DICT_BATCH);
+    store.set('dictPool',dictPool);
+  }
+  const show=dictPool.map(i=>DICT[i]).filter(Boolean).filter(d=>!dictLearned.includes(DICT.indexOf(d)));
+  $('dictList').innerHTML=show.length?show.map(d=>{
+    const idx=DICT.indexOf(d);
+    return `<div class="dict-term"><div><span style="font-size:11px;color:var(--muted)">${DICT_CAT[d[0]]||''}</span><b style="display:block;margin-top:2px">${d[1]}</b><p>${d[2]}</p></div>
+    <button class="btn" style="flex:0 0 auto;align-self:center" onclick="learnDict(${idx})">已学</button></div>`;
+  }).join(''):'<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">🎉 本批已学完！点「🔄 换一批」继续，或切换分类</div>';
   $('dictProg').textContent=dictLearned.length+'/'+DICT.length;
   $('dictBar').style.width=(dictLearned.length/DICT.length*100)+'%';
   store.set('dictLearned',dictLearned);
+  renderDictCats();
 }
-function learnDict(i){dictLearned.push(i);renderDict()}
-function resetDict(){dictLearned=[];renderDict()}
+function learnDict(i){if(!dictLearned.includes(i))dictLearned.push(i);renderDict()}
+function resetDict(){dictLearned=[];dictPool=null;store.set('dictPool',null);renderDict(true)}
 
 
 /* ================= IDEA · 三模块 ================= */
@@ -2560,7 +2816,7 @@ function refreshStats(){
   $('sTodo').textContent=todos.filter(t=>!t.done).length+'/'+todos.length;
   $('sStreak').textContent=$('hStreak').textContent;
 }
-function refreshAll(){renderHabits();renderTodos();renderNews();renderIdeas();restoreBiz();if(biz.Rev&&biz.Cost)genBiz();renderChips();renderReviewList();renderBanks();renderCardGallery();renderSents();renderTed();initPeer();renderDict();renderEngStats();renderQuotas();renderWord();renderEnNews('fin');renderFs();buildStockLinks();restoreRisk();if(risk&&risk.rev)calcRisk();restoreInputs();if(rw.Nopat||rw.Ic)calcRW();if(cf.Cfo&&cf.Rev)calcCF()}
+function refreshAll(){renderHabits();renderTodos();renderNews();renderIdeas();restoreBiz();if(biz.Rev&&biz.Cost)genBiz();renderChips();renderReviewList();renderBanks();renderCardGallery();renderSents();renderTed();initPeer();renderAiTools();renderDict();renderEngStats();renderQuotas();renderWord();renderEnNews('fin');renderFs();buildStockLinks();restoreRisk();if(risk&&risk.rev)calcRisk();restoreInputs();if(rw.Nopat||rw.Ic)calcRW();if(cf.Cfo&&cf.Rev)calcCF()}
 
 /* ================= 同步码（口令加密） ================= */
 function b64e(u8){let s='';for(let i=0;i<u8.length;i+=0x8000){s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000))}return btoa(s)}
