@@ -55,6 +55,9 @@ SOURCES = [
      r'/chinatax/n\d+/n\d+/c\d+/content\.html'),
     ('tax', '财政部会计司', 'http://kjs.mof.gov.cn/zhengcefabu/',
      r'\d{6}/t\d+_\d+\.htm'),
+    # 会计司对境外 IP 拒访（GitHub runner 会 FAIL），用中注协作境外兜底
+    ('tax', '中国注册会计师协会', 'https://www.cicpa.org.cn/',
+     r'\d{6}/t\d+_\d+\.html'),
 ]
 
 
