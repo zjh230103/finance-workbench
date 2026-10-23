@@ -295,6 +295,7 @@
     <!-- 同步码 -->
     <div id="syncBox" style="display:none;margin-top:10px;border:1px dashed var(--green);border-radius:10px;padding:12px;background:#f7faf8">
       <div style="font-weight:700;font-size:13px;margin-bottom:6px">🔑 同步码 · 电脑 ⇄ 手机（AES-256 口令加密，数据全程不出设备）</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.9;margin-bottom:8px">⚠️ <b>同步是「整包覆盖」不是合并</b>：以<b>数据最新的那一台</b>为准，生成同步码 → 在另一台导入，导入后另一台的同名数据会被覆盖。口令两台必须<b>完全一致</b>，且务必记牢——口令丢了无法解密。</div>
       <div class="row" style="margin-bottom:8px">
         <input type="password" id="syncPwd" placeholder="设一个同步口令（≥6位，两台设备必须输成一样的）" autocomplete="new-password">
       </div>
@@ -308,6 +309,8 @@
       </div>
       <div class="row" style="margin-top:8px">
         <button class="btn" onclick="applySync()">📥 导入并解密</button>
+        <label class="btn ghost" style="margin:0;display:inline-flex;align-items:center;justify-content:center" for="syncFile">📂 从文件读取</label>
+        <input type="file" id="syncFile" accept=".txt,.fwsync,text/plain" style="display:none" onchange="readSyncFile(this)">
         <button class="btn ghost" onclick="document.getElementById('syncIn').value=''">清空</button>
       </div>
       <textarea id="syncOut" style="display:none;min-height:90px;margin-top:8px;font-size:11px" readonly></textarea>
@@ -2969,6 +2972,24 @@ function updInstallState(){
   st.textContent=(standalone?'✅ 当前已是「应用模式」运行（已装到桌面）':'当前为浏览器标签页，按上方步骤安装')
     +'　·　Service Worker：'+(swOk?'支持':'不支持（需新版浏览器）')
     +'　·　离线缓存：'+(_swReady?'已就绪':'注册中……');
+}
+function readSyncFile(inp){
+  const f=inp&&inp.files&&inp.files[0];if(!f)return;
+  const fr=new FileReader();
+  fr.onload=()=>{
+    const v=String(fr.result||'').trim();
+    const box=$('syncIn');
+    if(box){
+      box.value=v;
+      const ok=/^FWS1\./.test(v);
+      $('syncTip').innerHTML=ok
+        ? ('✅ 已从文件读入同步码（'+v.length+' 字符），填好口令后点「📥 导入并解密」')
+        : ('⚠️ 读到的内容不像同步码（应以 FWS1. 开头），请确认选的是 .fwsync.txt 文件');
+    }
+    inp.value='';
+  };
+  fr.onerror=()=>{alert('读取文件失败，请重试');inp.value=''};
+  fr.readAsText(f,'utf-8');
 }
 async function makeSyncCode(){
   const pwd=$('syncPwd').value;
