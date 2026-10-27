@@ -1,5 +1,5 @@
 /* 财务人工作台 Service Worker：离线可用 + 自动更新缓存 */
-const CACHE = 'fw-cache-v6';
+const CACHE = 'fw-cache-v7';
 const ASSETS = [
   './',
   './index.html',
