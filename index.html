@@ -503,7 +503,7 @@
             <datalist id="peerIndList"></datalist>
           </div>
           <div class="row" style="margin-top:8px">
-            <input type="text" id="peerComp" list="peerCompList" maxlength="6" placeholder="股票代码：任意 A 股，如 002519" oninput="renderPeer()">
+            <input type="text" id="peerComp" list="peerCompList" maxlength="6" placeholder="股票代码：任意 A 股 6 位代码" oninput="renderPeer()">
             <datalist id="peerCompList"></datalist>
             <input type="text" id="peerName" placeholder="公司简称（可选）" oninput="renderPeer()">
           </div>
@@ -520,6 +520,22 @@
             <a class="link-btn" id="pkF10" target="_blank" style="display:none;background:var(--red)">🔍 个股 F10 · 财报</a>
             <a class="link-btn" id="pkFin" target="_blank" style="display:none;background:var(--green-deep)">📊 财务分析</a>
           </div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+            <button class="btn amber" style="flex:0 0 auto" onclick="copyIndustryPrompt()">🏭 复制行业分析指令</button>
+            <button class="btn ghost" style="flex:0 0 auto" onclick="toggleBriefBox()">📥 回填/查看行业结论</button>
+          </div>
+          <div id="briefBox" style="display:none;margin-top:8px;padding:10px;border:1px dashed var(--line);border-radius:8px">
+            <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-bottom:6px">
+              把 AI 生成的行业分析结论粘贴进来 → 存到本机 → 下次打开（含手机）自动显示在上方。<br>
+              建议只粘「执行摘要 + 竞争格局 + 风险与监测指标」的精简版，太长不好看。
+            </div>
+            <textarea id="briefIn" placeholder="粘贴行业分析结论……" style="min-height:110px"></textarea>
+            <div class="row" style="margin-top:8px">
+              <button class="btn" style="flex:0 0 auto" onclick="saveBrief()">💾 保存结论</button>
+              <button class="btn ghost" style="flex:0 0 auto" onclick="clearBrief()">🗑 删除本行业结论</button>
+            </div>
+            <div id="briefTip" style="font-size:12px;color:var(--green);margin-top:6px"></div>
+          </div>
           <div id="peerList" style="margin-top:12px"></div>
         </div>
       </div>
@@ -532,9 +548,9 @@
         </div>
         <div class="card" id="cardEntry">
           <h2>🔍 个股财报入口 · 一键直达</h2>
-          <div class="desc">输入 6 位股票代码（如 002519），一键打开对应财报与分析页面</div>
+          <div class="desc">输入 6 位股票代码，一键打开对应财报与分析页面</div>
           <div class="row">
-            <input type="text" id="stockCode" placeholder="股票代码，如 002519" maxlength="6" oninput="buildStockLinks()">
+            <input type="text" id="stockCode" placeholder="股票代码，6 位数字" maxlength="6" oninput="buildStockLinks()">
             <input type="text" id="stockName" placeholder="公司简称（可选）">
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -543,7 +559,7 @@
             <a class="link-btn" style="background:var(--green-deep)" id="lkSina" target="_blank">📊 新浪财报</a>
             <a class="link-btn" style="background:var(--red)" id="lkThs" target="_blank">📉 同花顺 F10</a>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:8px">🤖 想做深度分析：回到 WorkBuddy 对话说「分析 002519」，可调用财报深度分析能力生成完整研报</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">🤖 想做深度分析：回到 WorkBuddy 对话说「分析 代码」，可调用财报深度分析能力生成完整研报</div>
         </div>
 
         <div class="card" id="cardCheck">
@@ -1939,12 +1955,12 @@ function fillInputs(prefix,obj){Object.keys(obj||{}).forEach(k=>{const e=$(prefi
 
 /* ============ 同行对比 · 行业与公司筛选器 ============ */
 const PEER_DB={
- '激光设备':{code:'BK1036',comps:[['002519','联赢激光'],['002008','大族激光'],['300747','锐科激光'],['000988','华工科技'],['688559','海目星']],
+ '激光设备':{code:'BK1036',comps:[['002008','大族激光'],['300747','锐科激光'],['000988','华工科技'],['688559','海目星']],
   news:[
    ['2025年中国激光设备市场销售收入958亿元，同比+6.8%，占全球58%；2026年预计1025亿元','中国光学学会《2026中国激光产业发展报告》·2026-10','http://www.szooia.org.cn/news/202610/202610160329031308.html'],
    ['激光焊接成套设备212.5亿元（+29.3%），增速约为切割成套（315.2亿元，+3.6%）的8倍','中国光学光电子行业协会·2026-08','https://data.eastmoney.com'],
    ['协会预计2026年焊接设备破240亿元，2026—2030年CAGR 12.8%，三年内有望反超切割','中国光学光电子行业协会·2026-08','https://data.eastmoney.com'],
-   ['2025年动力+储能电池销量1700.5GWh（+63.6%），储能+101.3%快于动力+51.8%','中国汽车动力电池产业创新联盟（联赢2025年报引用）·2026-04','https://www.gg-lb.com'],
+   ['2025年动力+储能电池销量1700.5GWh（+63.6%），储能+101.3%快于动力+51.8%','中国汽车动力电池产业创新联盟（据公司年报引用）·2026-04','https://www.gg-lb.com'],
    ['AI算力链拉动：大族激光2026H1 PCB智能制造装备收入49.85亿元（+109.29%）','大族激光2026年半年度报告·2026-08','https://www.cninfo.com.cn'],
    ['政策：工信部等四部门《节能装备高质量发展实施方案(2026—2028年)》推广激光焊接、激光清洗','工信部·2026年上半年','https://www.miit.gov.cn'],
    ['风险样本：海目星2025年资产减值4.59亿元，归母净亏8.80亿元','海目星2025年年报·2026-04','https://www.cninfo.com.cn']
@@ -1974,15 +1990,14 @@ const PEER_BRIEF={
   size:'2025年市场规模 958 亿元（+6.8%），占全球 58%；2026E 1025 亿元',
   seg:'焊接成套 212.5 亿元（+29.3%）｜切割成套 315.2 亿元（+3.6%）｜光纤激光器 142.9 亿元｜超快 52.2 亿元',
   driver:'下游动力+储能电池销量 1700.5 GWh（+63.6%），储能 +101.3% 快于动力 +51.8%；AI算力链（PCB钻孔/TGV/CPO）为新增长极',
-  profit:'净利率极差超30pct：帝尔 25.54%｜华工 10.13%｜联赢 4.94%｜锐科 4.91%｜海目星亏损',
-  risk:'客户集中（联赢前五客户 48.86%）｜减值冲击（海目星资产减值 4.59 亿元）｜价格战压缩毛利',
+  profit:'净利率极差超30pct：帝尔 25.54%｜华工 10.13%｜锐科 4.91%｜海目星亏损',
+  risk:'客户集中（头部公司前五客户占比偏高）｜减值冲击（海目星资产减值 4.59 亿元）｜价格战压缩毛利',
   watch:'新签订单 → 合同负债 → 存货/发出商品周转 → 净利润现金含量 → 焊接与切割增速差',
   src:'《2026中国激光产业发展报告》（中国光学学会/中科院武汉文献情报中心）；各公司2025年年报；成稿 2026-10-21'
  }};
 /* 公司透视（2025 年报） */
 const COMP_FIN={
- '002519':{n:'联赢激光',rev:'32.61亿(+3.55%)',np:'1.67亿(+1.05%)',gm:'28.36%',nm:'4.94%',tag:'焊接专精｜新签订单51亿(+70%)｜现金含量47.42%｜负债率60.15%'},
- '002008':{n:'大族激光',rev:'187.59亿',np:'—',gm:'—',nm:'—',tag:'全品类龙头｜研发投入占比11.11%｜2026H1 PCB装备49.85亿(+109.29%)'},
+  '002008':{n:'大族激光',rev:'187.59亿',np:'—',gm:'—',nm:'—',tag:'全品类龙头｜研发投入占比11.11%｜2026H1 PCB装备49.85亿(+109.29%)'},
  '300747':{n:'锐科激光',rev:'34.67亿(+8.43%)',np:'1.62亿(+20.52%)',gm:'20.37%',nm:'4.91%',tag:'光源垂直集成｜手持焊+66.22%｜研发投入3.87亿'},
  '000988':{n:'华工科技',rev:'143.55亿(+22.59%)',np:'14.71亿(+20.48%)',gm:'21.22%',nm:'10.13%',tag:'装备+光电器件+传感器｜CPO/TGV布局'},
  '688559':{n:'海目星',rev:'42.17亿',np:'-8.80亿(亏损)',gm:'—',nm:'亏损',tag:'锂电+消费电子+光伏｜资产减值-4.59亿'},
@@ -2014,6 +2029,66 @@ function onIndChange(){
   const cl=$('peerCompList');
   if(cl)cl.innerHTML=allPeerComps().map(c=>`<option value="${c[0]}">${c[1]} ${c[0]}</option>`).join('');
   renderPeer();
+}
+/* ============ 🏭 行业分析：AI 桥接 + 结论回填（v19d） ============ */
+function getBriefs(){return store.get('indBriefs',{})}
+function toggleBriefBox(){
+  const b=$('briefBox');if(!b)return;
+  b.style.display=b.style.display==='none'?'block':'none';
+  if(b.style.display==='block'){
+    const ind=($('peerInd').value||'').trim();
+    const cb=getBriefs()[ind];
+    if(cb){$('briefIn').value=cb.txt;$('briefTip').textContent='已保存：'+cb.time}
+    else{$('briefIn').value='';$('briefTip').textContent=''}
+  }
+}
+function saveBrief(){
+  const ind=($('peerInd')&&$('peerInd').value||'').trim();
+  if(!ind){alert('请先填写行业名称，结论是挂在行业名下的');return}
+  const txt=($('briefIn').value||'').trim();
+  if(!txt){alert('请先粘贴结论内容');return}
+  const b=getBriefs();
+  b[ind]={txt:txt,time:new Date().toLocaleString('zh-CN')};
+  store.set('indBriefs',b);
+  $('briefTip').textContent='✅ 已保存「'+ind+'」（'+b[ind].time+'）';
+  renderPeer();
+}
+function clearBrief(){
+  const ind=($('peerInd')&&$('peerInd').value||'').trim();
+  if(!ind){alert('请先填写行业名称');return}
+  const b=getBriefs();
+  if(!b[ind]){alert('「'+ind+'」还没有保存过结论');return}
+  if(!confirm('确定删除「'+ind+'」的行业结论？'))return;
+  delete b[ind];store.set('indBriefs',b);
+  if($('briefIn'))$('briefIn').value='';
+  if($('briefTip'))$('briefTip').textContent='已删除';
+  renderPeer();
+}
+function copyIndustryPrompt(){
+  const ind=($('peerInd')&&$('peerInd').value||'').trim();
+  if(!ind){alert('请先填写你要研究的行业名称');return}
+  let p='请用「行业分析」能力，对【'+ind+'】做一份结构化行业研究报告。\n\n';
+  p+='## 基础设定\n地域：中国　|　时间：近 5 年历史 + 未来 3 年　|　读者：企业经营与投资决策者\n\n';
+  p+='## 请按以下八章输出\n';
+  p+='1. 执行摘要：3–5 条核心结论、行动含义与置信度\n';
+  p+='2. 行业定义与研究边界（包含/排除范围、在价值链中的位置）\n';
+  p+='3. 市场规模、历史增速、所处阶段与趋势\n';
+  p+='4. 4P：产品 / 价格 / 渠道 / 推广\n';
+  p+='5. 技术壁垒、政策环境、产业链利润分布\n';
+  p+='6. 竞争格局：集中度 CR3/CR5、主要玩家（至少 3 家）与各自策略\n';
+  p+='7. 进入或经营建议、关键风险、监测指标\n';
+  p+='8. 方法、假设、数据缺口与来源清单\n\n';
+  p+='## 硬性要求\n';
+  p+='- 每个数字注明来源机构、发布日期、统计期、单位与口径；事实、估算、推断分开写\n';
+  p+='- 关键数据至少双源核对；单源要明确标记；数据冲突时并列口径，不要静默二选一\n';
+  p+='- 找不到的数据写「暂缺 / 未公开」，不要编造\n';
+  p+='- 建议与风险必须能回到前文的证据，不要空泛表述\n';
+  p+='- 有可靠数据才画图，图题要含单位、时间、样本与来源\n';
+  p+='- 中文书写\n\n';
+  p+='## 最后一步（重要）\n';
+  p+='报告写完后，另外给我一份「执行摘要 + 竞争格局 + 风险与监测指标」的精简版，\n';
+  p+='我可以直接粘贴回填到我的工作台里长期查看。精简版控制在 600 字以内。';
+  copyText(p);
 }
 function renderPeer(){
   const indEl=$('peerInd'),cpEl=$('peerComp'),nmEl=$('peerName');
@@ -2081,12 +2156,20 @@ function renderPeer(){
   }else if(compCode){
     compHtml=`<div class="peer-comp"><div class="pc-n">🏢 ${compName||'自定义标的'}（${compCode}）</div><div class="pc-tag">内置库暂无该公司财务速览 → 点上方「🔍 个股 F10」看完整财报一手数据</div></div>`;
   }
-  // —— 未命中内置行业的提示 ——
-  if(!d&&ind){
+  // —— 本人回填的行业结论（优先展示，因为是最新的） ——
+  const cb=getBriefs()[ind];
+  if(cb){
+    briefHtml=`<div class="peer-brief" style="border-left:3px solid var(--amber)">
+      <div class="pb-t">🗂 本人回填 · ${ind}　<span style="font-size:11px;color:var(--muted)">${cb.time}</span></div>
+      <div style="font-size:12.5px;line-height:1.95;white-space:pre-wrap">${escHtml(cb.txt)}</div>
+    </div>`+briefHtml;
+  }
+  // —— 未命中内置行业且未回填时的提示 ——
+  if(!d&&ind&&!cb){
     briefHtml=`<div class="peer-brief"><div class="pb-t">🧭 自定义行业 · ${ind}</div>
       <div style="font-size:12px;line-height:1.9;color:var(--muted)">
       内置研究库暂未覆盖「<b>${ind}</b>」，行业板块与动态已转为<b>搜索引擎直达</b>（上方两个按钮）。<br>
-      需要我把这个行业补进研究库并产出完整行业结论，告诉我行业名即可。</div></div>`;
+      想要完整行业结论：点「🏭 复制行业分析指令」→ 粘到 WorkBuddy 对话 → 把 AI 回的精简版用「📥 回填」存进来，之后长期可见。</div></div>`;
   }
   const head=`<div style="font-size:12px;color:var(--muted);margin:10px 0 8px">🏭 ${ind||'（未填行业）'}　·　${compName||'未选个股'}${compCode?'（'+compCode+'）':''}　·　内置动态 ${items.length} 条</div>`;
   $('peerList').innerHTML=head+briefHtml+compHtml+
