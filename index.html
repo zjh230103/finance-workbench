@@ -499,19 +499,26 @@
           <h2>🏭 同行对比 · 行业与公司动态筛选器</h2>
           <div class="desc">先选行业，再选公司，看这家公司所处行业的最新动态；也可直接跳转外部行情与公告源看实时信息。</div>
           <div class="row">
-            <select id="peerInd" onchange="onIndChange()"></select>
-            <select id="peerComp" onchange="renderPeer()"></select>
+            <input type="text" id="peerInd" list="peerIndList" placeholder="行业：可任意填（如 激光设备 / 锂电 / 军工电子）" oninput="renderPeer()">
+            <datalist id="peerIndList"></datalist>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="peerComp" list="peerCompList" maxlength="6" placeholder="股票代码：任意 A 股，如 002519" oninput="renderPeer()">
+            <datalist id="peerCompList"></datalist>
+            <input type="text" id="peerName" placeholder="公司简称（可选）" oninput="renderPeer()">
           </div>
           <div class="row" style="margin-top:8px">
             <input type="text" id="peerKw" placeholder="关键词过滤，如：返点 / 扩产 / 招标" oninput="renderPeer()">
             <button class="btn ghost" style="flex:0 0 auto" onclick="$('peerKw').value='';renderPeer()">清空</button>
           </div>
-          <div style="font-size:11px;color:var(--muted);margin-top:8px">📌 「💰 全球财经」与「📋 会计准则与税法」已由云端每日 9:00 自动抓取更新；本「同行对比」仍为内置示例，看当天实时信息请点下方外链直达。</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px">📌 行业与公司均可<b>自由填写任意值</b>：填到内置库里的会给出行业研究结论与财务速览，库外的会转为搜索引擎直达。（💰 全球财经 / 📋 会计准则与税法已由云端每日 9:00 自动抓取）<br>⚠️ 本页仅作<b>分析框架与跳转入口</b>，不代看行情与实时财务数据，请以公司公告为准。</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            <a class="link-btn" id="pkEast" target="_blank">📈 东方财富 · 板块行情</a>
+            <a class="link-btn" id="pkEast" target="_blank">📈 东方财富 · 板块/搜索</a>
             <a class="link-btn" id="pkThs" target="_blank" style="background:var(--amber)">🏭 同花顺 · 行业板块</a>
             <a class="link-btn" id="pkCninfo" target="_blank" style="background:#4a6fa5">📄 巨潮 · 公司公告</a>
             <a class="link-btn" id="pkXq" target="_blank" style="background:#1e6fd9">💬 雪球 · 个股讨论</a>
+            <a class="link-btn" id="pkF10" target="_blank" style="display:none;background:var(--red)">🔍 个股 F10 · 财报</a>
+            <a class="link-btn" id="pkFin" target="_blank" style="display:none;background:var(--green-deep)">📊 财务分析</a>
           </div>
           <div id="peerList" style="margin-top:12px"></div>
         </div>
@@ -521,6 +528,7 @@
         <div class="as-tabs">
           <div class="as-tab active" onclick="setAsTab(this,'entry')">📄 财报入口</div>
           <div class="as-tab" onclick="setAsTab(this,'core')">🧮 核心测算</div>
+          <div class="as-tab" onclick="setAsTab(this,'report')">📊 深度研报</div>
         </div>
         <div class="card" id="cardEntry">
           <h2>🔍 个股财报入口 · 一键直达</h2>
@@ -606,6 +614,28 @@
 
         </div>
       </div>
+        <div class="card" id="cardReport" style="display:none">
+          <h2>📊 个股财报深度研报 <button class="btn ghost" style="margin-left:auto;padding:6px 12px;font-size:12px" onclick="buildReport();previewReport()">⚙ 生成并预览</button></h2>
+          <div class="desc">基于「🧮 核心测算 → 财务四维体检」已录入的 16 项指标，前端即时演算：张新民四维框架 + 杜邦勾稽验证 + 现金周期测算，产出可下载研报。数据全程在本机，不上传。</div>
+          <div class="row" style="margin-top:10px">
+            <input type="text" id="rptCode" maxlength="6" placeholder="股票代码（不填则取上方财报入口）">
+            <input type="text" id="rptName" placeholder="公司简称（不填则取上方）">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input type="text" id="rptInd" placeholder="所处行业（选填，写进 AI 指令做行业背景）">
+          </div>
+          <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:6px">
+            <button class="btn" style="flex:0 0 auto" onclick="downloadReport()">⬇ 下载研报 HTML</button>
+            <button class="btn ghost" style="flex:0 0 auto" onclick="copyReportMd()">📋 复制研报全文</button>
+            <button class="btn amber" style="flex:0 0 auto" onclick="copyAiPrompt()">🤖 复制 AI 深度分析指令</button>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.8">
+            💡 <b>内置引擎</b>：离线可用、秒出结论，适合日常体检<br>
+            💡 <b>AI 桥接</b>：复制指令粘到 WorkBuddy 对话，由财报深度分析能力产出带三表拆解的加长版研报（需联网）
+          </div>
+          <div id="reportOut" style="margin-top:12px"></div>
+        </div>
+
 
     </div>
   </div>
@@ -1656,7 +1686,248 @@ function clearCF(){
 }
 
 /* ============ A股财报分析 · 子标签 ============ */
-const AS_GROUPS={entry:['cardEntry'],core:['cardCheck','cardRW','cardCF']};
+const AS_GROUPS={entry:['cardEntry'],core:['cardCheck','cardRW','cardCF'],report:['cardReport']};
+/* ============ 📊 深度研报引擎（v19b） ============ */
+let LAST_RPT=null;
+function fsVal(k){const d=store.get('fs',{});return (d[k]!==undefined&&d[k]!=='')?parseFloat(d[k]):null}
+function fsMeta(k){for(const dim of FS_DIMS){for(const it of dim.items){if(it[0]===k)return {u:it[1],dir:it[2],g:it[3],y:it[4],dim:dim.name}}}return null}
+function fsCls(v,m){if(v===null||!m)return null;const ok=m.dir>0?v>=m.g:v<=m.g;const mid=m.dir>0?v>=m.y:v<=m.y;return ok?'g':(mid?'y':'r')}
+function fsWord(v,m){if(v===null)return '未录入';
+  const line=(m.dir>0?('≥'+m.g):('≤'+m.g))+m.u;
+  const c=fsCls(v,m);
+  return c==='g'?('达标（ '+v+m.u+'，健康线 '+line+' ）'):(c==='y'?('关注（ '+v+m.u+'，健康线 '+line+' ）'):('预警（ '+v+m.u+'，健康线 '+line+' ）'));
+}
+function stripParen(t){return String(t==null?'':t).replace(/\s*[（(]\s*/g,' ').replace(/\s*[）)]\s*/g,' ').replace(/\s{2,}/g,' ').trim()}
+function rptTarget(){
+  const code=($('rptCode')&&$('rptCode').value.trim())||(($('stockCode')&&$('stockCode').value.trim())||'');
+  const name=($('rptName')&&$('rptName').value.trim())||(($('stockName')&&$('stockName').value.trim())||'');
+  const ind=($('rptInd')&&$('rptInd').value.trim())||'';
+  return {code:code,name:name||'（未填简称）',ind:ind};
+}
+function scoreFs(){
+  const dims=[];let pt=0,tot=0,filled=0;
+  FS_DIMS.forEach(d=>{
+    const rows=d.items.map(it=>{
+      const v=fsVal(it[0]),m=fsMeta(it[0]),c=fsCls(v,m);
+      if(v!==null){filled++;tot+=2;pt+=(c==='g'?2:(c==='y'?1:0))}
+      return {n:it[0],u:it[1],v:v,c:c,w:fsWord(v,m)};
+    });
+    dims.push({name:d.name,icon:d.name.replace(/[\x00-\x7F]/g,''),rows:rows});
+  });
+  const rate=tot?pt/tot:0;
+  const grade = filled<6?{t:'数据不足',lv:'x'}:
+    rate>=0.85?{t:'A · 财务稳健',lv:'g'}:
+    rate>=0.70?{t:'B · 整体良好',lv:'g'}:
+    rate>=0.55?{t:'C · 需要关注',lv:'y'}:{t:'D · 风险预警',lv:'r'};
+  return {dims:dims,pt:pt,tot:tot,filled:filled,rate:rate,grade:grade};
+}
+function dupont(){
+  const nm=fsVal('净利率'),at=fsVal('总资产周转率'),dr=fsVal('资产负债率'),roe=fsVal('ROE（净资产收益率）');
+  if(nm===null||at===null||dr===null)return null;
+  if(dr>=100||dr<0)return {err:'资产负债率读数异常（'+dr+'%），无法完成权益乘数换算'};
+  const em=1/(1-dr/100);
+  const calc=nm/100*at*em*100;
+  return {nm:nm,at:at,dr:dr,em:em,calc:calc,roe:roe};
+}
+function cccInfo(){
+  const ar=fsVal('应收账款周转天数'),iv=fsVal('存货周转天数'),ap=fsVal('应付账款周转天数');
+  if(ar===null&&iv===null)return null;
+  const A=ar||0,I=iv||0,Ap=ap||0;
+  return {ar:ar,iv:iv,ap:ap,ccc:A+I-Ap};
+}
+function qualityLine(){
+  const ratio=fsVal('经营现金流/净利润');
+  if(ratio===null)return null;
+  if(ratio>=1)return {lv:'g',t:'利润兑现充分',d:'净现比 '+ratio+'，经营现金流覆盖净利润，赚到的是真钱。'}
+  if(ratio>=0.5)return {lv:'y',t:'利润含金量尚可偏弱',d:'净现比 '+ratio+'，低于 1，需看是否存在应收/存货占压，建议拆到季度数据看趋势。'}
+  return {lv:'r',t:'利润真实性存疑',d:'净现比 '+ratio+'，明显低于 0.5，账面利润与现金回流的缺口较大，要核对应收账款账龄与收入确认口径。'}
+}
+function riskList(sc){
+  const out=[];
+  sc.dims.forEach(d=>d.rows.forEach(r=>{if(r.c==='r')out.push({lv:'🔴',n:r.n,t:r.w,dim:d.name})}));
+  sc.dims.forEach(d=>d.rows.forEach(r=>{if(r.c==='y')out.push({lv:'🟡',n:r.n,t:r.w,dim:d.name})}));
+  return out;
+}
+function adviceOf(sc,cc,dup,q){
+  const a=[];
+  sc.dims.forEach(d=>d.rows.forEach(r=>{
+    if(r.c!=='r'&&r.c!=='y')return;
+    const k=r.n;
+    if(k==='毛利率')a.push('毛利率偏离健康线：先看是上游涨价挤压还是产品降价让利，二者对策完全不同——前者要谈价/锁价，后者要复盘产品结构与客户结构。');
+    if(k==='期间费用率')a.push('期间费用率偏高：拆到销售/管理/研发/财务四费分别看同比，判断是刚性支出还是一次性投入。');
+    if(k==='资产负债率')a.push('资产负债率偏高：区分经营性负债（应付账款、合同负债，属占用上下游资金）与有息负债（短期借款、长期借款，才是真实偿债压力），两者性质完全不同。');
+    if(k==='流动比率'||k==='速动比率')a.push('短期偿债指标偏弱：关注一年内到期有息负债与账面货币资金的匹配，留意受限资金（保证金、票据保证金）不能随时动用。');
+    if(k==='利息保障倍数')a.push('利息保障倍数偏低：EBIT 对利息的覆盖不足，遇利率上行或盈利下滑时弹性很差，建议压降有息负债规模。');
+    if(k==='应收账款周转天数')a.push('应收周转天数偏长：应收账款是你最熟的一块，建议按客户分层看账龄，核对是否存���大额信用政策放宽带来的收入前置。');
+    if(k==='存货周转天数')a.push('存货周转偏慢：区分原材料、在产品、发出商品，发出商品长期挂账要核验收货验收条款是否变成变相提前确认收入。');
+    if(k==='应付账款周转天数')a.push('应付周转天数异常：天数过短说明没用足上游信用，天数突变要结合票据、供应链融资工具一起看。');
+    if(k==='总资产周转率')a.push('总资产周转偏低：看收入增速是否跟得上资产扩张，尤其固定资产转固后产能利用率爬坡的节奏。');
+    if(k==='经营现金流/净利润')a.push('净现比偏低：把净利润到 CFO 的差额逐项还原（应收、存货、应付、折旧、减值），定位钱卡在哪个环节。');
+    if(k==='销售现金比率')a.push('销售现金比率偏低：收入转成现金的效率不足，核对是否存在放宽账期换收入的情形。');
+    if(k==='资本开支 / 经营现金流')a.push('资本开支占经营现金流比例偏高：扩张期的现金流自我造血不足，需要外部融资接续，留意后续折旧对利润的压力。');
+    if(k==='ROE（净资产收益率）')a.push('ROE 偏弱：用杜邦三因子拆解，看清是净利率、周转率还是杠杆拖累，再定改进方向。');
+    if(k==='经营现金流净额')a.push('经营现金流净额不理想：拿到季度现金流表看季节性，判断是行业回款周期还是自身经营问题。');
+  }));
+  if(cc&&cc.ccc>180)a.push('现金周期 '+Math.round(cc.ccc)+' 天：营运资金占用很重，增长越快反而越缺钱，建议把「应收+存货-应付」作为月度看板指标盯着。');
+  if(cc&&cc.ccc<0)a.push('现金周期为负（'+Math.round(cc.ccc)+' 天）：公司在占用上下游资金经营，是产业链地位强的表现，但要注意别把应付款拖得太久伤供应商关系。');
+  if(dup&&dup.roe!==null&&!isNaN(dup.calc)){
+    const gap=Math.abs(dup.roe-dup.calc)/(Math.abs(dup.roe)||1);
+    if(gap>0.3)a.push('杜邦勾稽偏差较大（申报 ROE '+dup.roe+'% vs 反算 '+dup.calc.toFixed(2)+'%）：先复核净利率、周转率、资产负债率三项录入口径是否一致（是否用平均资产、净利率是否为归母口径），口径统一后仍偏差过大再去查非经常性损益。');
+  }
+  if(!a.length)a.push('当前录入指标全部达标，维持现有节奏即可；建议每季度重录一次，看趋势变化而非单点数值。');
+  return a;
+}
+function buildReport(){
+  const tg=rptTarget(),sc=scoreFs(),cc=cccInfo(),dup=dupont(),q=qualityLine(),rk=riskList(sc),ad=adviceOf(sc,cc,dup,q);
+  const now=new Date().toLocaleString('zh-CN');
+  const safe=(x)=>String(x==null?'':x);
+  if(sc.filled<6){
+    LAST_RPT=null;
+    $('reportOut').innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;line-height:2">📝 还没录入足够的体检数据<br>请先到「🧮 核心测算 → 🩺 财务四维体检表」至少填 6 项，再回来生成研报。<br><span style="font-size:12px">当前已录入 '+sc.filled+' 项</span></div>';
+    return null;
+  }
+  const dotc={g:'#2e7d5b',y:'#c98a17',r:'#c0392b'}[sc.grade.lv]||'#888';
+  const mdLines=[];
+  mdLines.push('# '+tg.name+'（'+tg.code+'）财报深度研报');
+  mdLines.push('生成时间：'+now+'　|　数据来源：本机录入的四维体检表（非实时抓取）');
+  mdLines.push('');
+  mdLines.push('## 综合结论：'+sc.grade.t+'（'+sc.pt+'/'+sc.tot+' 分）');
+  mdLines.push('');
+  // HTML
+  let h='';
+  h+='<div class="rr-wrap">';
+  h+='<div class="rr-head"><div class="rr-title">'+tg.name+'（'+(tg.code||'未填代码')+'）财报深度研报</div><div class="rr-sub">生成时间 '+now+'　·　数据口径：本机录入（非实时抓取）'+(tg.ind?'　·　行业：'+tg.ind:'')+'</div>';
+  h+='<div class="rr-badge" style="background:'+dotc+'">'+sc.grade.t+'　'+sc.pt+'/'+sc.tot+'</div></div>';
+  // 四维
+  h+='<div class="rr-sec"><h3>一、四维体检全景</h3>';
+  sc.dims.forEach(d=>{
+    h+='<div class="rr-dim"><div class="rr-dimn">'+d.name+'</div><table class="rr-tb"><tr><th>指标</th><th>数值</th><th>判定</th></tr>';
+    d.rows.forEach(r=>{
+      const c=r.c||'n';
+      const col={g:'#2e7d5b',y:'#c98a17',r:'#c0392b',n:'#999'}[c];
+      h+='<tr><td>'+r.n+'</td><td>'+(r.v===null?'—':r.v+r.u)+'</td><td style="color:'+col+'">'+escHtml(r.w)+'</td></tr>';
+    });
+    h+='</table></div>';
+  });
+  h+='</div>';
+  mdLines.push('## 一、四维体检全景');
+  sc.dims.forEach(d=>{mdLines.push('');mdLines.push('**'+d.name+'**');d.rows.forEach(r=>mdLines.push('- '+r.n+'：'+(r.v===null?'—':r.v+r.u)+' → '+r.w))});
+  // 杜邦
+  h+='<div class="rr-sec"><h3>二、杜邦勾稽验证</h3>';
+  if(dup&&!dup.err){
+    h+='<div class="rr-kv"><span>净利率</span><b>'+dup.nm+'%</b><span>×</span><span>总资产周转率</span><b>'+dup.at+' 次</b><span>×</span><span>权益乘数</span><b>'+dup.em.toFixed(2)+'</b><span>=</span><span>反算 ROE</span><b>'+dup.calc.toFixed(2)+'%</b></div>';
+    if(dup.roe!==null){
+      const gap=Math.abs(dup.roe-dup.calc)/(Math.abs(dup.roe)||1);
+      const ok=gap<=0.15,warn=gap<=0.3;
+      h+='<div class="rr-note '+(ok?'g':(warn?'y':'r'))+'">申报 ROE '+dup.roe+'%　vs　反算 ROE '+dup.calc.toFixed(2)+'%，偏差 '+(gap*100).toFixed(1)+'%　→　'+(ok?'勾稽一致，三因子口径自洽。':(warn?'存在偏差，建议复核录入口径（是否用平均资产、净利率是否归母口径）。':'偏差较大，需核对口径并排查非经常性损益、少数股东权益影响。'))+'</div>';
+      mdLines.push('');mdLines.push('## 二、杜邦勾稽验证');
+      mdLines.push('净利率 '+dup.nm+'% × 周转率 '+dup.at+' × 权益乘数 '+dup.em.toFixed(2)+' = 反算 ROE '+dup.calc.toFixed(2)+'%；申报 ROE '+dup.roe+'%，偏差 '+(gap*100).toFixed(1)+'%');
+    }else{
+      h+='<div class="rr-note">未录入 ROE，无法做申报值 vs 反算值的交叉验证。建议补录后可检验三表口径是否自洽。</div>';
+      mdLines.push('');mdLines.push('## 二、杜邦勾稽验证');mdLines.push('反算 ROE '+dup.calc.toFixed(2)+'%（未录入申报 ROE，未做交叉验证）');
+    }
+  }else{
+    h+='<div class="rr-note">'+((dup&&dup.err)?dup.err:'净利率 / 总资产周转率 / 资产负债率三项未录全，无法完成杜邦分解。')+'</div>';
+    mdLines.push('');mdLines.push('## 二、杜邦勾稽验证');mdLines.push('数据不足，未完成杜邦分解。');
+  }
+  h+='</div>';
+  // 现金周期
+  if(cc){
+    h+='<div class="rr-sec"><h3>三、现金周期（营运资金占用）</h3>';
+    h+='<div class="rr-kv"><span>应收天数</span><b>'+(cc.ar===null?'—':cc.ar+' 天')+'</b><span>+</span><span>存货天数</span><b>'+(cc.iv===null?'—':cc.iv+' 天')+'</b><span>−</span><span>应付天数</span><b>'+(cc.ap===null?'—':cc.ap+' 天')+'</b><span>=</span><span>现金周期</span><b>'+Math.round(cc.ccc)+' 天</b></div>';
+    const cccTxt=cc.ccc<0?'现金周期为负，公司在占用上下游资金运转，产业链地位较强。':(cc.ccc>180?'现金周期超过半年，营运资金占用重，营收增长会同步放大资金缺口，需要盯住融资与回款节奏。':'现金周期处于可控区间。');
+    h+='<div class="rr-note '+(cc.ccc>180?'r':(cc.ccc>120?'y':'g'))+'">'+cccTxt+'</div></div>';
+    mdLines.push('');mdLines.push('## 三、现金周期');mdLines.push('应收 '+(cc.ar===null?'—':cc.ar)+' + 存货 '+(cc.iv===null?'—':cc.iv)+' − 应付 '+(cc.ap===null?'—':cc.ap)+' = '+Math.round(cc.ccc)+' 天。'+cccTxt);
+  }
+  // 盈利质量
+  if(q){
+    h+='<div class="rr-sec"><h3>四、利润真实性</h3><div class="rr-note '+q.lv+'"><b>'+q.t+'</b>　'+q.d+'</div></div>';
+    mdLines.push('');mdLines.push('## 四、利润真实性');mdLines.push(q.t+'：'+q.d);
+  }
+  // 风险
+  h+='<div class="rr-sec"><h3>五、风险提示（'+rk.length+' 项）</h3>';
+  if(rk.length){
+    h+='<ul class="rr-ul">';rk.forEach(x=>{h+='<li>'+x.lv+' <b>'+x.n+'</b>（'+x.dim.replace(/[\x00-\x7F]/g,'')+'）：'+escHtml(x.t)+'</li>'});h+='</ul>';
+  }else{h+='<div class="rr-note g">已录入指标全部达到健康线，暂无预警项。</div>'}
+  h+='</div>';
+  mdLines.push('');mdLines.push('## 五、风险提示（'+rk.length+' 项）');
+  rk.forEach(x=>mdLines.push('- '+x.lv+' '+x.n+'：'+x.t));
+  // 建议
+  h+='<div class="rr-sec"><h3>六、关注建议</h3><ol class="rr-ol">';
+  ad.forEach(x=>{h+='<li>'+escHtml(x)+'</li>'});
+  h+='</ol></div>';
+  mdLines.push('');mdLines.push('## 六、关注建议');ad.forEach((x,i)=>mdLines.push((i+1)+'. '+x));
+  // 免责
+  h+='<div class="rr-foot">本报告由「财务人工作台」本机演算生成，全部数据来自使用人在财务四维体检表中的手工录入，未经审计、非实时抓取，不保证与市场披露口径完全一致，仅供个人分析参考，不构成任何投资建议。<br>生成时间 '+now+'</div>';
+  h+='</div>';
+  mdLines.push('');
+  mdLines.push('---');
+  mdLines.push('_本报告由「财务人工作台」本机演算生成，数据来自手工录入，未经审计、非实时抓取，仅供个人分析参考，不构成投资建议。_');
+
+  LAST_RPT={html:h,md:mdLines.join('\n'),tg:tg,sc:sc,now:now,ad:ad,dup:dup,cc:cc,q:q};
+  $('reportOut').innerHTML=h+STYLE_RR();
+  return LAST_RPT;
+}
+function STYLE_RR(){
+  if($('rrStyleTag'))return '';
+  const st=document.createElement('style');st.id='rrStyleTag';
+  st.textContent='.rr-wrap{border:1px solid #dfe6e2;border-radius:12px;overflow:hidden;background:#fff}'+
+  '.rr-head{background:#3d5a4e;color:#fff;padding:16px 18px;position:relative}'+
+  '.rr-title{font-size:17px;font-weight:800}.rr-sub{font-size:12px;opacity:.85;margin-top:4px}'+
+  '.rr-badge{display:inline-block;margin-top:10px;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;color:#fff}'+
+  '.rr-sec{padding:14px 18px;border-top:1px solid #eef2f0}'+
+  '.rr-sec h3{margin:0 0 10px;font-size:14px;color:#3d5a4e}'+
+  '.rr-dim{margin-bottom:12px}.rr-dimn{font-size:13px;font-weight:700;color:#3d5a4e;margin-bottom:6px}'+
+  '.rr-tb{width:100%;border-collapse:collapse;font-size:12px}'+
+  '.rr-tb th{background:#f4f8f6;text-align:left;padding:6px 8px;border:1px solid #e3eae7;color:#5a6b63}'+
+  '.rr-tb td{padding:6px 8px;border:1px solid #eef2f0}'+
+  '.rr-kv{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;background:#f7faf8;border:1px solid #e3eae7;border-radius:8px;padding:10px 12px}'+
+  '.rr-kv b{color:#3d5a4e}.rr-kv span{color:#7a8a83}'+
+  '.rr-note{font-size:12.5px;line-height:1.85;margin-top:8px;padding:9px 12px;border-radius:8px;background:#f5f7f6;border-left:3px solid #9aa8a2;color:#3a4a44}'+
+  '.rr-note.g{background:#eef7f2;border-left-color:#2e7d5b}.rr-note.y{background:#fdf6e7;border-left-color:#c98a17}.rr-note.r{background:#fdeeee;border-left-color:#c0392b}'+
+  '.rr-ul,.rr-ol{margin:0;padding-left:20px;font-size:12.5px;line-height:1.95}'+
+  '.rr-foot{padding:12px 18px;background:#f7faf8;border-top:1px solid #eef2f0;font-size:11px;color:#8a9791;line-height:1.8}';
+  document.head.appendChild(st);
+  return '';
+}
+function ensureRpt(){if(!LAST_RPT)buildReport();return LAST_RPT}
+function rptFileName(ext){const r=ensureRpt();const t=r?r.tg:{code:'',name:''};return '财报深度研报_'+(t.name||'未命名')+'_'+(t.code||'')+'_'+today()+ext}
+function downloadReport(){
+  const r=ensureRpt();if(!r)return;
+  const html='<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+r.tg.name+' 财报深度研报</title><style>body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:#f2f5f3;margin:0;padding:24px}*'+'{box-sizing:border-box}</style></head><body>'+r.html+'</body></html>';
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  a.download=rptFileName('.html');a.click();
+}
+function copyReportMd(){const r=ensureRpt();if(!r)return;copyText(r.md)}
+function copyAiPrompt(){
+  const r=ensureRpt();if(!r)return;
+  const t=r.tg;
+  let p='请用「财报深度分析」能力，为 '+t.name+'（'+(t.code||'未填代码')+'）生成一份完整研究报告。\n\n';
+  p+='## 一、已知财务指标（本人手工录入，口径为张新民四维体检框架）\n';
+  r.sc.dims.forEach(d=>{
+    p+='\n**'+d.name+'**\n';
+    d.rows.forEach(x=>{if(x.v!==null)p+='- '+x.n+': '+x.v+x.u+' ('+stripParen(x.w)+')'+'\n'});
+  });
+  if(r.cc)p+='\n## 二、已测算衍生指标\n- 现金周期 CCC = 应收 '+(r.cc.ar===null?'—':r.cc.ar)+' + 存货 '+(r.cc.iv===null?'—':r.cc.iv)+' − 应付 '+(r.cc.ap===null?'—':r.cc.ap)+' = '+Math.round(r.cc.ccc)+' 天\n';
+  if(r.dup&&!r.dup.err){
+    p+='- 杜邦反算 ROE = 净利率 '+r.dup.nm+'% × 周转率 '+r.dup.at+' × 权益乘数 '+r.dup.em.toFixed(2)+' = '+r.dup.calc.toFixed(2)+'%';
+    if(r.dup.roe!==null)p+='，申报 ROE '+r.dup.roe+'%';
+    p+='\n';
+  }
+  if(r.q)p+='- 利润真实性：'+r.q.t+'（'+r.q.d+'）\n';
+  p+='\n## 三、本机引擎已给出的初步结论\n- 综合评级：'+r.sc.grade.t+'（'+r.sc.pt+'/'+r.sc.tot+'）\n';
+  r.ad.slice(0,6).forEach((x,i)=>{p+='- 建议'+(i+1)+': '+stripParen(x)+'\n'});
+  p+='\n## 四、请重点输出\n';
+  p+='1. 利润表 / 资产负债表 / 现金流量表三个层面的结构拆解\n';
+  p+='2. 盈利质量与现金流质量的真实性判断（含可能的粉饰信号）\n';
+  p+='3. 三表勾稽验证，指出可能存在的口径不一致\n';
+  p+='4. 主要风险点，按严重程度排序\n';
+  p+='5. 结论与后续关注清单\n\n';
+  p+='要求：'+(t.ind?('结合 '+t.ind+' 行业背景，'):'')+'中文书写，结论要有数据支撑，避免空泛表述；上述指标之外的关键数据请自行核实，不要臆造。';
+  copyText(p);
+}
+function previewReport(){if(!ensureRpt())return;const e=$('reportOut');if(e&&e.firstChild)e.scrollIntoView({behavior:'smooth',block:'start'})}
 function setAsTab(el,k){
   document.querySelectorAll('.as-tab').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
@@ -1717,42 +1988,70 @@ const COMP_FIN={
  '688559':{n:'海目星',rev:'42.17亿',np:'-8.80亿(亏损)',gm:'—',nm:'亏损',tag:'锂电+消费电子+光伏｜资产减值-4.59亿'},
  '300776':{n:'帝尔激光',rev:'20.33亿(+0.93%)',np:'5.19亿(-1.59%)',gm:'46.57%',nm:'25.54%',tag:'光伏激光绝对领先｜前五客户66.66%｜TGV已出货'}
 };
+function allPeerComps(){
+  const arr=[];
+  Object.keys(PEER_DB).forEach(k=>PEER_DB[k].comps.forEach(c=>{if(!arr.some(x=>x[0]===c[0]))arr.push(c)}));
+  return arr;
+}
 function initPeer(){
-  if($('peerInd').options.length)return;
-  $('peerInd').innerHTML=Object.keys(PEER_DB).map(k=>`<option value="${k}">${k}</option>`).join('');
+  const dl=$('peerIndList');
+  if(dl&&!dl.options.length){
+    dl.innerHTML=Object.keys(PEER_DB).map(k=>`<option value="${k}">${k}</option>`).join('');
+    const cl=$('peerCompList');
+    cl.innerHTML=allPeerComps().map(c=>`<option value="${c[0]}">${c[1]} ${c[0]}</option>`).join('');
+  }
   const sel=store.get('peerSel',null);
-  if(sel&&PEER_DB[sel.ind]){$('peerInd').value=sel.ind}
-  onIndChange();
-  if(sel&&sel.comp){$('peerComp').value=sel.comp;$('peerKw').value=sel.kw||'';renderPeer()}
+  if(sel){
+    if(sel.ind)$('peerInd').value=sel.ind;
+    if(sel.comp){$('peerComp').value=sel.comp}
+    if(sel.name)$('peerName').value=sel.name;
+    $('peerKw').value=sel.kw||'';
+  }
+  renderPeer();
 }
 function onIndChange(){
-  const ind=$('peerInd').value,d=PEER_DB[ind];
-  $('peerComp').innerHTML='<option value="">全部公司（行业视角）</option>'+d.comps.map(c=>`<option value="${c[0]}">${c[1]} ${c[0]}</option>`).join('')+'<option value="__self">🏢 本公司（深圳联赢激光 002519）</option>';
+  // 行业与公司已解耦：下拉建议改为全量公司，任意代码都能查
+  const cl=$('peerCompList');
+  if(cl)cl.innerHTML=allPeerComps().map(c=>`<option value="${c[0]}">${c[1]} ${c[0]}</option>`).join('');
   renderPeer();
 }
 function renderPeer(){
-  if(!$('peerInd').options.length)return;
-  const ind=$('peerInd').value,code=$('peerComp').value,kw=$('peerKw').value.trim();
-  const d=PEER_DB[ind];
-  let compName='全部公司',compCode='';
-  if(code==='__self'){compName='深圳联赢激光';compCode='002519'}
-  else if(code){const f=d.comps.find(c=>c[0]===code);if(f){compName=f[1];compCode=f[0]}}
-  // 外链
-  const east='https://quote.eastmoney.com/center/boardlist.html#industry_'+d.code;
-  const ths='https://q.10jqka.com.cn/thshy/detail/code/'+d.code+'/';
-  const cn=compCode?'http://www.cninfo.com.cn/new/disclosure/stock?stockCode='+compCode:'http://www.cninfo.com.cn/new/index';
-  const xq=compCode?'https://xueqiu.com/S/SZ'+compCode:'https://xueqiu.com';
-  $('pkEast').href=east;$('pkThs').href=ths;$('pkCninfo').href=cn;$('pkXq').href=compCode?'https://xueqiu.com/S/'+((/^(60|68|9)/.test(compCode))?'SH':'SZ')+compCode:'https://xueqiu.com';
-  // 动态列表
-  let items=d.news.slice();
-  if(compCode&&compCode!=='002519'){
-    items=items.map(x=>[x[0].replace(/^/,''),x[1],x[2]]);
+  const indEl=$('peerInd'),cpEl=$('peerComp'),nmEl=$('peerName');
+  if(!indEl)return;
+  const ind=(indEl.value||'').trim();
+  const raw=(cpEl?cpEl.value:''||'').trim();
+  const nm=nmEl?((nmEl.value||'').trim()):'';
+  const kw=$('peerKw').value.trim();
+  const d=PEER_DB[ind];                        // 命中内置库才有研究结论
+  const compCode=/^\d{6}$/.test(raw)?raw:'';
+  let compName=nm;
+  if(compCode){
+    const f=allPeerComps().find(c=>c[0]===compCode);
+    if(!compName)compName=f?f[1]:'';
   }
+  const mk=compCode?marketOf(compCode):'SZ';
+  const indQ=encodeURIComponent(ind||'行业');
+  // —— 行业外链：命中用板块页，未命中转搜索 ——
+  $('pkEast').href=d?('https://quote.eastmoney.com/center/boardlist.html#industry_'+d.code)
+                   :('https://so.eastmoney.com/web/s?key='+indQ);
+  $('pkThs').href=d?('https://q.10jqka.com.cn/thshy/detail/code/'+d.code+'/')
+                  :('https://so.10jqka.com.cn/#/so?keyword='+indQ);
+  // —— 公司外链：任意代码都能直达 ——
+  $('pkCninfo').href=compCode?('http://www.cninfo.com.cn/new/disclosure/stock?stockCode='+compCode)
+                             :'http://www.cninfo.com.cn/new/index';
+  $('pkXq').href=compCode?('https://xueqiu.com/S/'+mk+compCode):'https://xueqiu.com';
+  const f10=$('pkF10'),fin=$('pkFin');
+  if(compCode){
+    f10.style.display='';fin.style.display='';
+    f10.href='https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code='+mk+compCode+'#/cwfx';
+    fin.href='https://money.finance.sina.com.cn/corp/go.php/vFD_FinanceSummary/stockid/'+compCode+'.phtml';
+  }else{f10.style.display='none';fin.style.display='none'}
+  // —— 动态列表（仅内置行业才有） ——
+  let items=d?(d.news||[]).slice():[];
   if(kw)items=items.filter(x=>x[0].indexOf(kw)>=0||x[1].indexOf(kw)>=0);
-  const html=items.length?items.map(x=>`<div class="news-item"><a href="${x[2]}" target="_blank">${x[0]}</a><div class="src">${x[1]}</div></div>`).join('')
-    :`<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">🔍 「${kw}」在本行业暂无匹配动态，可点上方外链看实时信息</div>`;
-  const bf=PEER_BRIEF[ind];
+  // —— 行业结论卡 ——
   let briefHtml='';
+  const bf=PEER_BRIEF[ind];
   if(bf){
     briefHtml=`<div class="peer-brief">
       <div class="pb-t">📌 行业研究结论 · ${ind}</div>
@@ -1765,8 +2064,9 @@ function renderPeer(){
       <div class="pb-src">来源：${bf.src}</div>
     </div>`;
   }
-  const cf=compCode?COMP_FIN[compCode]:null;
+  // —— 公司财务速览卡 ——
   let compHtml='';
+  const cf=compCode?COMP_FIN[compCode]:null;
   if(cf){
     compHtml=`<div class="peer-comp">
       <div class="pc-n">🏢 ${cf.n}（${compCode}）· 2025年报</div>
@@ -1779,10 +2079,20 @@ function renderPeer(){
       <div class="pc-tag">${cf.tag}</div>
     </div>`;
   }else if(compCode){
-    compHtml=`<div class="peer-comp"><div class="pc-n">🏢 ${compName}（${compCode}）</div><div class="pc-tag">该行业暂无内置财务数据，可点上方「巨潮·公司公告」查看一手披露</div></div>`;
+    compHtml=`<div class="peer-comp"><div class="pc-n">🏢 ${compName||'自定义标的'}（${compCode}）</div><div class="pc-tag">内置库暂无该公司财务速览 → 点上方「🔍 个股 F10」看完整财报一手数据</div></div>`;
   }
-  $('peerList').innerHTML=briefHtml+compHtml+`<div style="font-size:12px;color:var(--muted);margin:10px 0 8px">🏭 ${ind}　·　${compName}${compCode?'（'+compCode+'）':''}　·　行业动态 ${items.length} 条</div>`+html;
-  store.set('peerSel',{ind:ind,comp:code,kw:kw});
+  // —— 未命中内置行业的提示 ——
+  if(!d&&ind){
+    briefHtml=`<div class="peer-brief"><div class="pb-t">🧭 自定义行业 · ${ind}</div>
+      <div style="font-size:12px;line-height:1.9;color:var(--muted)">
+      内置研究库暂未覆盖「<b>${ind}</b>」，行业板块与动态已转为<b>搜索引擎直达</b>（上方两个按钮）。<br>
+      需要我把这个行业补进研究库并产出完整行业结论，告诉我行业名即可。</div></div>`;
+  }
+  const head=`<div style="font-size:12px;color:var(--muted);margin:10px 0 8px">🏭 ${ind||'（未填行业）'}　·　${compName||'未选个股'}${compCode?'（'+compCode+'）':''}　·　内置动态 ${items.length} 条</div>`;
+  $('peerList').innerHTML=head+briefHtml+compHtml+
+    (items.length?items.map(x=>`<div class="news-item"><a href="${x[2]}" target="_blank">${x[0]}</a><div class="src">${x[1]}</div></div>`).join('')
+      :(d?`<div style="text-align:center;color:var(--muted);padding:16px;font-size:13px">🔍 「${kw||'本行业'}」暂无匹配动态，可点上方外链看实时信息</div>`:''));
+  store.set('peerSel',{ind:ind,comp:raw,name:nm,kw:kw});
 }
 /* ================= 检索 ================= */
 function doSearch(){
